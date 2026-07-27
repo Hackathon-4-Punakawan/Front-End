@@ -123,7 +123,8 @@ const PengajuanMagang = ({
               onSubmit={(proposalData) => {
                 const newProposal = {
                   id: proposals.length + 1,
-                  jenisPengajuan: proposalData.namaProgramKegiatan,
+                  jenisPengajuan: 'Pengajuan Proposal Magang',
+                  namaProgramKegiatan: proposalData.namaProgramKegiatan,
                   programDiikuti: proposalData.programDiikuti,
                   namaInstansi: proposalData.namaInstansiMBKM,
                   namaPIC: proposalData.namaPIC,
@@ -449,7 +450,7 @@ const PengajuanMagang = ({
                       <tr key={`proposal-${p.id}`}>
                         <td>
                           <div className="cell-primary font-bold">{p.jenisPengajuan}</div>
-                          <span className="cell-secondary">{p.programDiikuti} · PIC: {p.namaPIC}</span>
+                          <span className="cell-secondary">{p.programDiikuti} ({p.namaProgramKegiatan}) · PIC: {p.namaPIC}</span>
                         </td>
                         <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
                           {p.tanggalPengajuan}
