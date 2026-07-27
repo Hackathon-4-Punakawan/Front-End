@@ -559,6 +559,274 @@ const MitraDashboard = () => {
           .intern-details { grid-template-columns: 1fr; }
           .mitra-quick-action { padding: 17px; }
         }
+        
+        /* =====================================================
+   RESPONSIVE DASHBOARD
+   Tidak mengubah isi / data dashboard
+===================================================== */
+
+/* Mencegah elemen grid melebar keluar parent */
+.custom-dashboard-container,
+.main-viewport,
+.dashboard-content,
+.mitra-top-grid,
+.mitra-bottom-grid,
+.mitra-hero-card,
+.mitra-content-card {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* =========================
+   TABLET / SMALL LAPTOP
+========================= */
+
+@media (max-width: 1100px) {
+
+  .mitra-top-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mitra-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mitra-right-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mitra-notification-card {
+    grid-column: 1 / -1;
+  }
+
+  /* Tabel tetap tabel, tetapi dapat discroll */
+  .active-intern-table {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .active-intern-header,
+  .active-intern-row {
+    min-width: 700px;
+  }
+}
+
+
+/* =========================
+   TABLET / MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+  /* CONTENT */
+
+  .dashboard-content {
+    padding: 20px !important;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+
+  .custom-header {
+    padding-left: 20px;
+    padding-right: 20px;
+    gap: 15px;
+  }
+
+  .user-profile {
+    padding: 7px;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* PAGE TITLE */
+
+  .dashboard-page-header {
+    margin-bottom: 20px;
+  }
+
+  .dashboard-page-header h1 {
+    font-size: 26px;
+  }
+
+  .dashboard-page-header p {
+    font-size: 14px;
+  }
+
+  /* HERO */
+
+  .mitra-hero-card {
+    min-height: auto;
+    padding: 25px 20px;
+  }
+
+  .mitra-company-name {
+    font-size: 21px;
+  }
+
+  .mitra-company-info {
+    align-items: flex-start;
+    font-size: 12px;
+  }
+
+  .mitra-period-row {
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 28px;
+  }
+
+  /* STATISTIC */
+
+  .mitra-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* RIGHT PANEL */
+
+  .mitra-right-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .mitra-notification-card {
+    grid-column: auto;
+  }
+
+  /* CONTENT CARD */
+
+  .mitra-content-card {
+    padding: 20px;
+  }
+
+  /* TABLE */
+
+  .active-intern-table {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .active-intern-header,
+  .active-intern-row {
+    min-width: 650px;
+  }
+
+  /* INTERN DETAILS */
+
+  .intern-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 480px) {
+
+  .dashboard-content {
+    padding: 16px !important;
+  }
+
+  /* HEADER */
+
+  .custom-header {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  /* PAGE TITLE */
+
+  .dashboard-page-header h1 {
+    font-size: 24px;
+  }
+
+  .dashboard-page-header p {
+    font-size: 13px;
+  }
+
+  /* HERO */
+
+  .mitra-hero-card {
+    padding: 22px 16px;
+    border-radius: 18px;
+  }
+
+  .mitra-company-name {
+    font-size: 19px;
+  }
+
+  .mitra-company-info {
+    font-size: 11px;
+  }
+
+  /* STATISTIC */
+
+  .mitra-stat-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .mitra-stat-card {
+    padding: 13px 7px;
+  }
+
+  .mitra-stat-value {
+    font-size: 18px;
+  }
+
+  .mitra-stat-label {
+    font-size: 9px;
+  }
+
+  /* QUICK ACTION */
+
+  .mitra-quick-action {
+    padding: 17px;
+  }
+
+  /* CONTENT */
+
+  .mitra-content-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .mitra-section-header h3 {
+    font-size: 16px;
+  }
+
+  /* TABLE */
+
+  .active-intern-table {
+    overflow-x: auto;
+  }
+
+  .active-intern-header,
+  .active-intern-row {
+    min-width: 600px;
+  }
+
+  /* CARD */
+
+  .intern-top,
+  .evaluation-header {
+    flex-direction: column;
+  }
+
+  .intern-details {
+    grid-template-columns: 1fr;
+  }
+}
       `}</style>
 
 
@@ -636,13 +904,17 @@ const MitraDashboard = () => {
 </button>
 
 <button
+  type="button"
   className={`sidebar-menu-item ${
     activeMenu === "riwayat" ? "active" : ""
   }`}
   onClick={() => setActiveMenu("riwayat")}
 >
-  <Clock size={22} />
-  <span>Riwayat Mahasiswa</span>
+  <Clock size={20} />
+
+  {!isSidebarCollapsed && (
+    <span>Riwayat Mahasiswa</span>
+  )}
 </button>
 
           </div>

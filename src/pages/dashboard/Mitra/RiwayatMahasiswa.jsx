@@ -754,58 +754,377 @@ const mahasiswaTampil = mahasiswa.filter((m) => {
         }
 
         /* =========================
-           RESPONSIVE
-        ========================= */
+   RESPONSIVE
+========================= */
 
-        @media (max-width: 1100px) {
 
-          .riwayat-container {
-            overflow-x: auto;
-          }
+/* =========================
+   TABLET BESAR
+========================= */
 
-          .riwayat-table-header,
-          .riwayat-list {
-            min-width: 850px;
-          }
+@media (max-width: 1100px) {
 
-        }
+  .riwayat-summary {
+    gap: 14px;
+  }
 
-        @media (max-width: 900px) {
+  .riwayat-summary-card {
+    padding: 22px;
+  }
 
-          .riwayat-summary {
-            grid-template-columns: 1fr;
-          }
+  .riwayat-container {
+    padding: 24px;
+  }
 
-          .riwayat-top {
-            align-items: stretch;
-            flex-direction: column;
-          }
+  .riwayat-table-header {
+    grid-template-columns:
+      minmax(200px, 2fr)
+      minmax(140px, 1.4fr)
+      minmax(150px, 1.2fr)
+      minmax(110px, 1fr);
 
-          .riwayat-search {
-            width: 100%;
-          }
+    gap: 16px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
 
-          .riwayat-filter {
-            flex-wrap: wrap;
-          }
+  .riwayat-row {
+    grid-template-columns:
+      minmax(200px, 2fr)
+      minmax(140px, 1.4fr)
+      minmax(150px, 1.2fr)
+      minmax(110px, 1fr);
 
-        }
+    gap: 16px;
+    padding: 18px 20px;
+  }
+}
 
-        @media (max-width: 600px) {
 
-          .riwayat-header h1 {
-            font-size: 28px;
-          }
+/* =========================
+   TABLET
+========================= */
 
-          .riwayat-container {
-            padding: 20px;
-          }
+@media (max-width: 900px) {
 
-          .riwayat-summary-card {
-            padding: 22px;
-          }
+  .riwayat-header {
+    margin-bottom: 24px;
+  }
 
-        }
+  .riwayat-header h1 {
+    font-size: 32px;
+  }
+
+  .riwayat-header p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* SUMMARY */
+
+  .riwayat-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .riwayat-summary-card {
+    min-height: 105px;
+    padding: 18px;
+  }
+
+  .riwayat-summary-card span {
+    font-size: 12px;
+  }
+
+  .riwayat-summary-card strong {
+    font-size: 27px;
+  }
+
+  .summary-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  /* DAFTAR */
+
+  .riwayat-container {
+    padding: 22px;
+  }
+
+  .riwayat-top {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .riwayat-search {
+    width: 100%;
+  }
+
+  .riwayat-filter {
+    flex-wrap: wrap;
+  }
+
+  /* sembunyikan header tabel */
+  .riwayat-table-header {
+    display: none;
+  }
+
+  /*
+   Ubah setiap data menjadi card 2 kolom.
+   Tidak ada horizontal scroll.
+  */
+
+  .riwayat-list {
+    min-width: 0;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .riwayat-row {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 18px 24px;
+
+    min-height: auto;
+
+    padding: 20px;
+  }
+
+  .riwayat-status {
+    justify-content: flex-start;
+  }
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+
+  /* HEADER */
+
+  .riwayat-header {
+    margin-bottom: 20px;
+  }
+
+  .riwayat-header h1 {
+    font-size: 26px;
+    line-height: 1.2;
+  }
+
+  .riwayat-header p {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* SUMMARY */
+
+  .riwayat-summary {
+    grid-template-columns: 1fr;
+    gap: 10px;
+
+    margin-bottom: 20px;
+  }
+
+  .riwayat-summary-card {
+    min-height: 90px;
+    padding: 18px;
+
+    border-radius: 16px;
+  }
+
+  .riwayat-summary-card span {
+    margin-bottom: 7px;
+
+    font-size: 12px;
+  }
+
+  .riwayat-summary-card strong {
+    font-size: 25px;
+  }
+
+  .summary-icon {
+    width: 42px;
+    height: 42px;
+
+    border-radius: 12px;
+  }
+
+  /* CONTAINER */
+
+  .riwayat-container {
+    padding: 16px;
+
+    border-radius: 17px;
+
+    overflow: visible;
+  }
+
+  /* HEADER DAFTAR */
+
+  .riwayat-top {
+    margin-bottom: 18px;
+  }
+
+  .riwayat-top h2 {
+    font-size: 19px;
+  }
+
+  .riwayat-top p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* SEARCH */
+
+  .riwayat-search {
+    width: 100%;
+    height: 44px;
+
+    padding: 0 13px;
+  }
+
+  .riwayat-search input {
+    font-size: 13px;
+  }
+
+  /* FILTER */
+
+  .riwayat-filter {
+    width: 100%;
+
+    display: flex;
+    flex-wrap: nowrap;
+
+    gap: 7px;
+
+    margin-bottom: 20px;
+  }
+
+  .riwayat-filter button {
+    flex: 1;
+
+    padding: 9px 8px;
+
+    font-size: 11px;
+
+    white-space: nowrap;
+  }
+
+  /* LIST */
+
+  .riwayat-list {
+    width: 100%;
+    min-width: 0;
+
+    gap: 10px;
+
+    margin-top: 0;
+  }
+
+  /* CARD MAHASISWA */
+
+  .riwayat-row {
+    width: 100%;
+
+    grid-template-columns: 1fr;
+
+    gap: 15px;
+
+    min-height: auto;
+
+    padding: 17px;
+
+    border-radius: 14px;
+  }
+
+  /* MAHASISWA */
+
+  .riwayat-mahasiswa {
+    gap: 12px;
+  }
+
+  .riwayat-avatar {
+    width: 45px;
+    height: 45px;
+
+    border-radius: 11px;
+
+    font-size: 15px;
+  }
+
+  .riwayat-mahasiswa strong {
+    font-size: 14px;
+  }
+
+  .riwayat-mahasiswa span {
+    margin-top: 3px;
+
+    font-size: 12px;
+  }
+
+  /* POSISI */
+
+  .riwayat-posisi strong {
+    font-size: 14px;
+  }
+
+  /* PERIODE */
+
+  .riwayat-periode {
+    gap: 7px;
+
+    font-size: 13px;
+  }
+
+  /* STATUS */
+
+  .riwayat-status {
+    justify-content: flex-start;
+  }
+
+  .status-magang,
+  .status-selesai {
+    padding: 7px 12px;
+
+    font-size: 11px;
+  }
+}
+
+
+/* =========================
+   MOBILE KECIL
+========================= */
+
+@media (max-width: 400px) {
+
+  .riwayat-header h1 {
+    font-size: 23px;
+  }
+
+  .riwayat-container {
+    padding: 13px;
+  }
+
+  .riwayat-summary-card {
+    padding: 16px;
+  }
+
+  .riwayat-row {
+    padding: 15px;
+  }
+
+  .riwayat-filter {
+    flex-wrap: wrap;
+  }
+
+  .riwayat-filter button {
+    flex: none;
+    width: 100%;
+  }
+}
 
       `}</style>
     </>

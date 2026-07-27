@@ -854,60 +854,330 @@ const handleUpdate = () => {
 }
 
 
-        /* ================= RESPONSIVE ================= */
+        /* ==================================================
+   RESPONSIVE
+================================================== */
 
-        @media (max-width: 1000px) {
+/* ================= TABLET ================= */
+@media (max-width: 1000px) {
 
-          .penilaian-summary-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
+  .penilaian-page-header h1,
+  .detail-title h1 {
+    font-size: 26px;
+  }
 
-          .penilaian-table-header {
-            display: none;
-          }
+  .penilaian-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
 
-          .penilaian-student-card {
-            grid-template-columns: 1fr 1fr;
-          }
+  .penilaian-summary-card {
+    padding: 20px;
+  }
 
-        }
+  /* Header tabel tidak diperlukan ketika card berubah layout */
+  .penilaian-table-header {
+    display: none;
+  }
 
-        @media (max-width: 700px) {
+  .penilaian-student-card {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 18px 24px;
+    padding: 20px;
+  }
 
-          .penilaian-list-header {
-            flex-direction: column;
-            align-items: stretch;
-          }
+  .penilaian-status-wrapper {
+    display: flex;
+    align-items: center;
+  }
 
-          .penilaian-search {
-            width: 100%;
-          }
+  .penilaian-action {
+    display: flex;
+    justify-content: flex-start;
+  }
 
-          .detail-student-grid {
-            grid-template-columns: 1fr;
-          }
+  .detail-student-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
-        }
 
-        @media (max-width: 500px) {
+/* ================= MOBILE / TABLET KECIL ================= */
+@media (max-width: 700px) {
 
-          .penilaian-summary-grid {
-            grid-template-columns: 1fr;
-          }
+  .penilaian-page-header,
+  .detail-title {
+    margin-bottom: 20px;
+  }
 
-          .penilaian-student-card {
-            grid-template-columns: 1fr;
-          }
+  .penilaian-page-header h1,
+  .detail-title h1 {
+    font-size: 24px;
+    line-height: 1.2;
+  }
 
-          .detail-buttons {
-            flex-direction: column-reverse;
-          }
+  .penilaian-page-header p,
+  .detail-title p {
+    font-size: 13px;
+    line-height: 1.6;
+  }
 
-          .nilai-table {
-            min-width: 650px;
-          }
+  /* SUMMARY */
 
-        }
+  .penilaian-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .penilaian-summary-card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .penilaian-summary-card span {
+    font-size: 10px;
+  }
+
+  .penilaian-summary-card strong {
+    font-size: 23px;
+  }
+
+  /* LIST */
+
+  .penilaian-list-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .penilaian-list-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+    margin-bottom: 18px;
+  }
+
+  .penilaian-search {
+    width: 100%;
+  }
+
+  .penilaian-student-card {
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    padding: 18px;
+  }
+
+  .penilaian-primary-btn,
+  .penilaian-secondary-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* DETAIL */
+
+  .detail-student-card,
+  .detail-nilai-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .detail-student-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* tabel tetap bisa digeser horizontal */
+  .nilai-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nilai-table {
+    min-width: 650px;
+  }
+}
+
+
+/* ================= HP ================= */
+@media (max-width: 500px) {
+
+  .penilaian-page-header h1,
+  .detail-title h1 {
+    font-size: 22px;
+  }
+
+  .penilaian-page-header p,
+  .detail-title p {
+    font-size: 12px;
+  }
+
+  /* SUMMARY */
+
+  .penilaian-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .penilaian-summary-card {
+    padding: 16px 18px;
+  }
+
+  .penilaian-summary-card span {
+    margin-bottom: 5px;
+    font-size: 11px;
+  }
+
+  .penilaian-summary-card strong {
+    font-size: 24px;
+  }
+
+  /* LIST */
+
+  .penilaian-list-card {
+    padding: 16px;
+  }
+
+  .penilaian-list-header h2 {
+    font-size: 17px;
+  }
+
+  .penilaian-list-header p {
+    line-height: 1.5;
+  }
+
+  .penilaian-search {
+    padding: 10px 12px;
+  }
+
+  .penilaian-student-list {
+    gap: 10px;
+  }
+
+  .penilaian-student-card {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding: 16px;
+  }
+
+  .penilaian-avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .penilaian-position {
+    gap: 3px;
+  }
+
+  .penilaian-status-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  .penilaian-action {
+    width: 100%;
+  }
+
+  .penilaian-primary-btn,
+  .penilaian-secondary-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* DETAIL PENILAIAN */
+
+  .detail-back {
+    margin-bottom: 14px;
+  }
+
+  .detail-student-card,
+  .detail-nilai-card {
+    padding: 16px;
+  }
+
+  .detail-student-title,
+  .detail-nilai-title {
+    margin-bottom: 16px;
+  }
+
+  .detail-student-title h2,
+  .detail-nilai-title h2 {
+    font-size: 16px;
+  }
+
+  .detail-student-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .detail-student-grid > div {
+    min-height: auto;
+    padding: 14px;
+  }
+
+  /* TABLE NILAI */
+
+  .nilai-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nilai-table {
+    min-width: 650px;
+  }
+
+  .nilai-table th {
+    padding: 13px 14px;
+  }
+
+  .nilai-table td {
+    padding: 14px;
+  }
+
+  .nilai-table input {
+    width: 110px;
+  }
+
+  /* BUTTON DETAIL */
+
+  .detail-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .btn-submit,
+  .btn-update {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+
+/* ================= HP KECIL ================= */
+@media (max-width: 380px) {
+
+  .penilaian-page-header h1,
+  .detail-title h1 {
+    font-size: 20px;
+  }
+
+  .penilaian-list-card {
+    padding: 13px;
+  }
+
+  .penilaian-student-card {
+    padding: 14px;
+  }
+
+  .penilaian-summary-card {
+    padding: 14px 16px;
+  }
+
+  .detail-student-card,
+  .detail-nilai-card {
+    padding: 14px;
+  }
+}
 
       `}</style>
     </>
