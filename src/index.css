@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary: #B432F2;
+  --primary-hover: #9f1be0;
+  --primary-light: #f8ebff;
+  --primary-glow: rgba(180, 50, 242, 0.15);
+  --bg-gradient: #ffffff;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border: #e9e2f2;
+  --input-bg: #fdfcff;
+  --input-focus-border: #B432F2;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 25px -5px rgba(180, 50, 242, 0.08), 0 8px 10px -6px rgba(180, 50, 242, 0.08);
+  --shadow-card: 0 20px 25px -5px rgba(180, 50, 242, 0.05), 0 10px 10px -5px rgba(180, 50, 242, 0.03);
+  
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #c258f5;
+    --primary-hover: #B432F2;
+    --primary-light: rgba(180, 50, 242, 0.15);
+    --primary-glow: rgba(180, 50, 242, 0.25);
+    --bg-gradient: linear-gradient(135deg, #090514 0%, #0f0a21 50%, #150a1e 100%);
+    --bg-card: #12101e;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border: #2a243d;
+    --input-bg: #181528;
+    --input-focus-border: #c258f5;
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    --shadow-card: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text-main);
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+button {
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
