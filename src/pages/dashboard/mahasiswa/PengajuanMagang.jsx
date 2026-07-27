@@ -90,7 +90,7 @@ const PengajuanMagang = ({
     kepadaYth: '',
     namaInstansi: '',
     alamatInstansi: '',
-    semester: '6',
+    semester: 'Genap',
     tahunAkademik: '2026/2027'
   });
 
@@ -720,11 +720,6 @@ const PengajuanMagang = ({
               </div>
               <div className="table-pagination">
                 <span className="pagination-info">Menampilkan {1 + proposals.length + (suratPengantar ? 1 : 0) + (dosenPembimbing ? 1 : 0) + (conversionState.status !== 'none' ? 1 : 0)} data pengajuan</span>
-                <div className="pagination-pages">
-                  <button className="pag-btn">&larr;</button>
-                  <button className="pag-btn active">1</button>
-                  <button className="pag-btn">&rarr;</button>
-                </div>
               </div>
             </div>
 
@@ -1344,7 +1339,8 @@ const PengajuanMagang = ({
                     onChange={e => handleFormChange('semester', e.target.value)}
                     disabled={isPending}
                   >
-                    {['5','6','7','8'].map(s => <option key={s} value={s}>Semester {s}</option>)}
+                    <option value="Ganjil">Ganjil</option>
+                    <option value="Genap">Genap</option>
                   </select>
                   <ChevronRight size={14} className="pm-select-icon" />
                 </div>

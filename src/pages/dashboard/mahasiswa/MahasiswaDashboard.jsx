@@ -28,7 +28,8 @@ import {
   User,
   Save,
   Phone,
-  Mail
+  Mail,
+  History
 } from 'lucide-react';
 
 const PREDEFINED_COURSES = [
@@ -70,6 +71,17 @@ const MahasiswaDashboard = () => {
 
   // State for Surat Akhir submitted in Magang tab
   const [suratAkhirSubmitted, setSuratAkhirSubmitted] = useState(false);
+
+  // Filter states for History tab
+  const [filterTahun, setFilterTahun] = useState('2026/2027');
+  const [filterSemester, setFilterSemester] = useState('Genap');
+  const [selectedTahun, setSelectedTahun] = useState('2026/2027');
+  const [selectedSemester, setSelectedSemester] = useState('Genap');
+
+  const handleTampilkanClick = () => {
+    setFilterTahun(selectedTahun);
+    setFilterSemester(selectedSemester);
+  };
 
   // Custom Alert Modal State
   const [customAlert, setCustomAlert] = useState({
@@ -185,6 +197,13 @@ const MahasiswaDashboard = () => {
             >
               <FileCheck2 size={18} />
               {!isSidebarCollapsed && <span>Pengajuan Magang</span>}
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`nav-item ${activeTab === 'history' ? 'active' : ''}`}
+            >
+              <History size={18} />
+              {!isSidebarCollapsed && <span>Riwayat Pengajuan</span>}
             </button>
           </div>
         </nav>
@@ -711,6 +730,346 @@ const MahasiswaDashboard = () => {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* TAB 3: RIWAYAT PENGAJUAN */}
+          {activeTab === 'history' && (
+            <div className="tab-pane fade-in">
+              <div className="page-heading">
+                <h1 className="main-title">Riwayat Pengajuan</h1>
+              </div>
+
+              <div className="panel-container" style={{ marginBottom: '24px', padding: '24px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '32px', flexWrap: 'wrap' }}>
+                  {/* Semester Select */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '14px', fontWeight: '700', color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Semester</label>
+                    <div style={{ position: 'relative', width: '220px' }}>
+                      <select 
+                        value={selectedSemester} 
+                        onChange={(e) => setSelectedSemester(e.target.value)}
+                        style={{
+                          width: '100%',
+                          border: 'none',
+                          borderBottom: '2px solid #cbd5e1',
+                          padding: '8px 24px 8px 0',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#334155',
+                          background: 'transparent',
+                          outline: 'none',
+                          cursor: 'pointer',
+                          borderRadius: '0',
+                          appearance: 'none',
+                          WebkitAppearance: 'none'
+                        }}
+                      >
+                        <option value="Semua">-- Pilih Semester --</option>
+                        <option value="Genap">Genap</option>
+                        <option value="Ganjil">Ganjil</option>
+                      </select>
+                      {/* Triangle indicator */}
+                      <div style={{
+                        position: 'absolute',
+                        right: '4px',
+                        bottom: '12px',
+                        width: '0',
+                        height: '0',
+                        borderLeft: '5px solid transparent',
+                        borderRight: '5px solid transparent',
+                        borderTop: '6px solid #94a3b8',
+                        pointerEvents: 'none'
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Tahun Akademik Select */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '14px', fontWeight: '700', color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Tahun Akademik</label>
+                    <div style={{ position: 'relative', width: '220px' }}>
+                      <select 
+                        value={selectedTahun} 
+                        onChange={(e) => setSelectedTahun(e.target.value)}
+                        style={{
+                          width: '100%',
+                          border: 'none',
+                          borderBottom: '2px solid #cbd5e1',
+                          padding: '8px 24px 8px 0',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#334155',
+                          background: 'transparent',
+                          outline: 'none',
+                          cursor: 'pointer',
+                          borderRadius: '0',
+                          appearance: 'none',
+                          WebkitAppearance: 'none'
+                        }}
+                      >
+                        <option value="Semua">-- Pilih Tahun --</option>
+                        <option value="2026/2027">2026/2027</option>
+                        <option value="2025/2026">2025/2026</option>
+                      </select>
+                      {/* Triangle indicator */}
+                      <div style={{
+                        position: 'absolute',
+                        right: '4px',
+                        bottom: '12px',
+                        width: '0',
+                        height: '0',
+                        borderLeft: '5px solid transparent',
+                        borderRight: '5px solid transparent',
+                        borderTop: '6px solid #94a3b8',
+                        pointerEvents: 'none'
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Tampilkan Button */}
+                  <div style={{ marginLeft: '12px' }}>
+                    <button 
+                      onClick={handleTampilkanClick}
+                      style={{
+                        backgroundColor: '#B432F2',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '10px 28px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: '800',
+                        letterSpacing: '0.8px',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 10px rgba(180, 50, 242, 0.2)',
+                        transition: 'all 0.2s ease',
+                        fontFamily: "'Outfit', sans-serif"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#991ceb';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#B432F2';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      TAMPILKAN
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="panel-container">
+                <div className="table-responsive">
+                  <table className="custom-data-table">
+                    <thead>
+                      <tr>
+                        <th>Jenis Pengajuan</th>
+                        <th>Tanggal Pengajuan</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'center' }}>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const allHistoryData = [
+                          // Current Semester 6 - 2026/2027
+                          {
+                            id: 1,
+                            jenis: 'Pengajuan ID Magang',
+                            subtext: 'Semester 6 - 2026/2027',
+                            tanggal: '27 Juli 2026',
+                            semester: 'Genap',
+                            tahun: '2026/2027',
+                            status: idMagangStatus === 'approved' ? 'DISETUJUI' : idMagangStatus === 'pending' ? 'PENDING' : 'BELUM DIAJUKAN'
+                          },
+                          {
+                            id: 2,
+                            jenis: 'Pengajuan Proposal Magang',
+                            subtext: proposals.length > 0 ? `${proposals[0].programDiikuti} (${proposals[0].namaInstansi})` : 'Magang Berdampak (a) - PIC: a',
+                            tanggal: '27 Juli 2026',
+                            semester: 'Genap',
+                            tahun: '2026/2027',
+                            status: proposals.length > 0 ? (proposals[0].status || 'DISETUJUI') : 'BELUM DIAJUKAN'
+                          },
+                          {
+                            id: 3,
+                            jenis: 'Pengajuan Surat Pengantar Magang',
+                            subtext: `Durasi/Periode: ${suratPengantar?.periodeMagang || '2 Bulan'}`,
+                            tanggal: '27 Juli 2026',
+                            semester: 'Genap',
+                            tahun: '2026/2027',
+                            status: suratPengantar ? (suratPengantar.status || 'DISETUJUI') : 'BELUM DIAJUKAN'
+                          },
+                          {
+                            id: 4,
+                            jenis: 'Pengajuan Dosen Pembimbing Magang',
+                            subtext: `SKS Ditempuh: ${dosenPembimbing?.sksDitempuh || '110'} SKS`,
+                            tanggal: '27 Juli 2026',
+                            semester: 'Genap',
+                            tahun: '2026/2027',
+                            status: dosenPembimbing ? (dosenPembimbing.status || 'DISETUJUI') : 'BELUM DIAJUKAN'
+                          },
+                          {
+                            id: 5,
+                            jenis: 'Konversi SKS Akademik',
+                            subtext: 'Matriks Capaian Pembelajaran & Penilaian Akademik',
+                            tanggal: '27 Juli 2026',
+                            semester: 'Genap',
+                            tahun: '2026/2027',
+                            status: conversionState.status !== 'none' ? (conversionState.status === 'DISETUJUI' ? 'DISETUJUI' : 'PENDING') : 'BELUM DIAJUKAN'
+                          },
+
+                          // Past Semester 5 - 2025/2026
+                          {
+                            id: 6,
+                            jenis: 'Pengajuan ID Magang',
+                            subtext: 'Semester 5 - 2025/2026',
+                            tanggal: '15 Jan 2026',
+                            semester: 'Ganjil',
+                            tahun: '2025/2026',
+                            status: 'DISETUJUI'
+                          },
+                          {
+                            id: 7,
+                            jenis: 'Pengajuan Proposal Magang',
+                            subtext: 'Magang Mandiri (DataWorks Analytics)',
+                            tanggal: '16 Jan 2026',
+                            semester: 'Ganjil',
+                            tahun: '2025/2026',
+                            status: 'DISETUJUI'
+                          },
+                          {
+                            id: 8,
+                            jenis: 'Pengajuan Surat Pengantar Magang',
+                            subtext: 'Durasi/Periode: 3 Bulan',
+                            tanggal: '18 Jan 2026',
+                            semester: 'Ganjil',
+                            tahun: '2025/2026',
+                            status: 'DISETUJUI'
+                          },
+                          {
+                            id: 9,
+                            jenis: 'Pengajuan Dosen Pembimbing Magang',
+                            subtext: 'SKS Ditempuh: 90 SKS',
+                            tanggal: '20 Jan 2026',
+                            semester: 'Ganjil',
+                            tahun: '2025/2026',
+                            status: 'DISETUJUI'
+                          },
+                          {
+                            id: 10,
+                            jenis: 'Konversi SKS Akademik',
+                            subtext: 'Matriks Capaian Pembelajaran & Penilaian Akademik',
+                            tanggal: '22 Jan 2026',
+                            semester: 'Ganjil',
+                            tahun: '2025/2026',
+                            status: 'DISETUJUI'
+                          }
+                        ];
+
+                        const filteredHistory = allHistoryData.filter(item => {
+                          const matchTahun = filterTahun === 'Semua' || item.tahun === filterTahun;
+                          const matchSemester = filterSemester === 'Semua' || item.semester === filterSemester;
+                          return matchTahun && matchSemester;
+                        });
+
+                        if (filteredHistory.length > 0) {
+                          return filteredHistory.map((item) => {
+                            let badgeClass = 'badge-gray';
+                            let badgeText = 'BELUM DIAJUKAN';
+                            
+                            if (item.status === 'DISETUJUI') {
+                              badgeClass = 'badge-purple'; // green color
+                              badgeText = '• DISETUJUI';
+                            } else if (item.status === 'PENDING') {
+                              badgeClass = 'badge-pending';
+                              badgeText = '• PENDING';
+                            }
+
+                            const isPendingStyle = item.status === 'PENDING';
+                            
+                            return (
+                              <tr key={item.id}>
+                                <td>
+                                  <div className="cell-primary" style={{ fontSize: '13.5px', fontWeight: '700' }}>{item.jenis}</div>
+                                  <span className="cell-secondary">{item.subtext}</span>
+                                </td>
+                                <td style={{ fontWeight: '600', color: '#64748b' }}>
+                                  {item.status !== 'BELUM DIAJUKAN' ? item.tanggal : '-'}
+                                </td>
+                                <td>
+                                  <span 
+                                    className={`status-capsule ${badgeClass}`} 
+                                    style={isPendingStyle ? {
+                                      backgroundColor: '#fffbeb',
+                                      color: '#d97706',
+                                      border: '1px solid #fde68a',
+                                      fontSize: '9px',
+                                      padding: '4px 12px'
+                                    } : { fontSize: '9px', padding: '4px 12px' }}
+                                  >
+                                    {badgeText}
+                                  </span>
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <button 
+                                    className="table-action-icon" 
+                                    onClick={() => triggerAlert(item.jenis, `Menampilkan detail lengkap untuk ${item.jenis} (${item.subtext}).`, 'info')}
+                                    style={{ color: '#B432F2', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        } else {
+                          return (
+                            <tr>
+                              <td colSpan="4" style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
+                                <FolderOpen size={32} style={{ marginBottom: '8px', color: '#cbd5e1' }} />
+                                <p style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>Tidak ada riwayat pengajuan</p>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#cbd5e1' }}>Silakan sesuaikan filter pencarian Anda.</p>
+                              </td>
+                            </tr>
+                          );
+                        }
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', borderTop: '1px solid #f6f1fb', paddingTop: '16px' }}>
+                  <span style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: '600' }}>
+                    {(() => {
+                      const allHistoryData = [
+                        { id: 1, semester: 'Genap', tahun: '2026/2027' },
+                        { id: 2, semester: 'Genap', tahun: '2026/2027' },
+                        { id: 3, semester: 'Genap', tahun: '2026/2027' },
+                        { id: 4, semester: 'Genap', tahun: '2026/2027' },
+                        { id: 5, semester: 'Genap', tahun: '2026/2027' },
+                        { id: 6, semester: 'Ganjil', tahun: '2025/2026' },
+                        { id: 7, semester: 'Ganjil', tahun: '2025/2026' },
+                        { id: 8, semester: 'Ganjil', tahun: '2025/2026' },
+                        { id: 9, semester: 'Ganjil', tahun: '2025/2026' },
+                        { id: 10, semester: 'Ganjil', tahun: '2025/2026' }
+                      ];
+                      const count = allHistoryData.filter(item => {
+                        const matchTahun = filterTahun === 'Semua' || item.tahun === filterTahun;
+                        const matchSemester = filterSemester === 'Semua' || item.semester === filterSemester;
+                        return matchTahun && matchSemester;
+                      }).length;
+                      return `Menampilkan ${count} data pengajuan`;
+                    })()}
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e2e8f0', background: '#ffffff', color: '#94a3b8', cursor: 'not-allowed', fontWeight: '700' }} disabled>&larr;</button>
+                    <button style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#B432F2', color: '#ffffff', fontWeight: '800' }}>1</button>
+                    <button style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e2e8f0', background: '#ffffff', color: '#94a3b8', cursor: 'not-allowed', fontWeight: '700' }} disabled>&rarr;</button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
