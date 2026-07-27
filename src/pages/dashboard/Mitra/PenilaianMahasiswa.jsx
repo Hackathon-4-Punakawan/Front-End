@@ -7,34 +7,103 @@ const PenilaianMahasiswa = () => {
     const [penilaian, setPenilaian] = useState({});
 
   const mahasiswa = [
-    {
-      id: 1,
-      nama: "Sukma Putri",
-      nim: "22.11.4321",
-      prodi: "Informatika",
-      posisi: "Web Developer",
-      periode: "Feb - Mei 2026",
-      status: "Belum Dinilai",
-    },
-    {
-      id: 2,
-      nama: "Arief Kurniawan",
-      nim: "22.11.4312",
-      prodi: "Informatika",
-      posisi: "Backend Developer",
-      periode: "Feb - Mei 2026",
-      status: "Draft",
-    },
-    {
-      id: 3,
-      nama: "Sonia Clarissa",
-      nim: "22.11.4299",
-      prodi: "Informatika",
-      posisi: "UI/UX Designer",
-      periode: "Jan - Apr 2026",
-      status: "Sudah Dinilai",
-    },
-  ];
+  {
+    id: 1,
+    nim: "22.11.4321",
+    nama: "Sukma Putri",
+    prodi: "Informatika",
+    posisi: "Web Developer",
+    periode: "Feb - Mei 2026",
+    internshipStatus: "Aktif",
+    status: "Belum Dinilai",
+    nilai: [],
+    submittedAt: null,
+  },
+  {
+    id: 2,
+    nim: "22.11.4312",
+    nama: "Arief Kurniawan",
+    prodi: "Informatika",
+    posisi: "Backend Developer",
+    periode: "Feb - Mei 2026",
+    internshipStatus: "Aktif",
+    status: "Belum Dinilai",
+    nilai: [],
+    submittedAt: null,
+  },
+  {
+    id: 3,
+    nim: "22.11.4299",
+    nama: "Sonia Clarissa",
+    prodi: "Informatika",
+    posisi: "UI/UX Designer",
+    periode: "Jan - Apr 2026",
+    internshipStatus: "Selesai",
+    status: "Sudah Dinilai",
+    nilai: [],
+    submittedAt: null,
+  },
+  {
+    id: 4,
+    nim: "22.11.4111",
+    nama: "Rendra Pramudya",
+    prodi: "Informatika",
+    posisi: "Frontend Developer",
+    periode: "Mar - Jun 2026",
+    internshipStatus: "Aktif",
+    status: "Belum Dinilai",
+    nilai: [],
+    submittedAt: null,
+  },
+  {
+    id: 5,
+    nim: "22.11.4001",
+    nama: "Dinda Maharani",
+    prodi: "Informatika",
+    posisi: "Data Analyst",
+    periode: "Jan - Apr 2026",
+    internshipStatus: "Selesai",
+    status: "Sudah Dinilai",
+    nilai: [],
+    submittedAt: null,
+  },
+  {
+    id: 6,
+    nim: "22.11.4002",
+    nama: "Fajar Ramadhan",
+    prodi: "Informatika",
+    posisi: "Mobile Developer",
+    periode: "Feb - Mei 2026",
+    internshipStatus: "Selesai",
+    status: "Sudah Dinilai",
+    nilai: [],
+    submittedAt: null,
+  },
+  {
+    id: 7,
+    nim: "22.11.4003",
+    nama: "Nadia Putri",
+    prodi: "Informatika",
+    posisi: "Quality Assurance",
+    periode: "Feb - Mei 2026",
+    internshipStatus: "Selesai",
+    status: "Sudah Dinilai",
+    nilai: [],
+    submittedAt: null,
+  },
+  {
+    id: 8,
+    nim: "22.11.4004",
+    nama: "Bagas Pratama",
+    prodi: "Informatika",
+    posisi: "DevOps Engineer",
+    periode: "Jan - Apr 2026",
+    internshipStatus: "Selesai",
+    status: "Sudah Dinilai",
+    nilai: [],
+    submittedAt: null,
+  },
+];
 
 const handleUpdate = () => {
   if (!masihBisaUpdate()) {
@@ -51,17 +120,13 @@ const handleUpdate = () => {
     item.nama.toLowerCase().includes(search.toLowerCase())
   );
 
-  const belumDinilai = mahasiswa.filter(
-    (item) => item.status === "Belum Dinilai"
-  ).length;
+    const belumDinilai = mahasiswa.filter(
+        (item) => item.status === "Belum Dinilai"
+    ).length;
 
-  const draft = mahasiswa.filter(
-    (item) => item.status === "Draft"
-  ).length;
-
-  const sudahDinilai = mahasiswa.filter(
-    (item) => item.status === "Sudah Dinilai"
-  ).length;
+    const sudahDinilai = mahasiswa.filter(
+        (item) => item.status === "Sudah Dinilai"
+    ).length;
 
   return (
     <>
@@ -113,11 +178,6 @@ const handleUpdate = () => {
             </div>
 
             <div className="penilaian-summary-card">
-              <span>Draft Penilaian</span>
-              <strong>{draft}</strong>
-            </div>
-
-            <div className="penilaian-summary-card">
               <span>Sudah Dinilai</span>
               <strong>{sudahDinilai}</strong>
             </div>
@@ -151,10 +211,10 @@ const handleUpdate = () => {
 
             {/* HEADER KOLOM */}
             <div className="penilaian-table-header">
-              <span>Mahasiswa</span>
-              <span>Posisi</span>
-              <span>Status Penilaian</span>
-              <span>Aksi</span>
+              <div>Mahasiswa</div>
+              <div>Posisi</div>
+              <div>Status Penilaian</div>
+              <div>Aksi</div>
             </div>
 
             {/* DATA */}
@@ -192,22 +252,18 @@ const handleUpdate = () => {
                   </div>
 
                   {/* STATUS */}
+{/* STATUS */}
 <div className="penilaian-status-wrapper">
   <span
     className={`penilaian-status ${
-      sudahDinilai
-        ? "done"
-        : item.status === "Draft"
-        ? "draft"
-        : "waiting"
+      sudahDinilai ? "done" : "waiting"
     }`}
   >
-    {sudahDinilai ? "Sudah Dinilai" : item.status}
+    {sudahDinilai ? "Sudah Dinilai" : "Belum Dinilai"}
   </span>
 </div>
 
-                  {/* AKSI */}
-                  {/* AKSI */}
+{/* AKSI */}
 <div className="penilaian-action">
 
   {sudahDinilai ? (
@@ -217,15 +273,6 @@ const handleUpdate = () => {
     >
       Lihat Penilaian
     </button>
-
-  ) : item.status === "Draft" ? (
-    <button
-      className="penilaian-primary-btn"
-      onClick={() => setSelectedMahasiswa(item)}
-    >
-      Lanjutkan Penilaian
-    </button>
-
   ) : (
     <button
       className="penilaian-primary-btn"
@@ -325,7 +372,7 @@ const handleUpdate = () => {
 
         .penilaian-summary-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(3, 1fr);
           gap: 18px;
           margin-bottom: 28px;
         }
@@ -408,27 +455,19 @@ const handleUpdate = () => {
         /* ================= TABLE HEADER ================= */
 
         .penilaian-table-header {
-          display: grid;
+  display: grid;
+  grid-template-columns: 2fr 1.3fr 0.9fr 0.9fr;
+  align-items: center;
+  gap: 24px;
 
-          grid-template-columns:
-            1.5fr
-            1fr
-            0.8fr
-            0.8fr;
+  padding: 18px 34px;
+  border-bottom: 1px solid #eee7f5;
 
-          gap: 25px;
-
-          padding: 0 28px 14px;
-
-          border-bottom: 1px solid #eee7f5;
-
-          color: #94a3b8;
-
-          font-size: 10px;
-          font-weight: 800;
-
-          text-transform: uppercase;
-        }
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3c3;
+  text-transform: uppercase;
+}
 
 
         /* ================= STUDENT ================= */
@@ -443,11 +482,7 @@ const handleUpdate = () => {
         .penilaian-student-card {
           display: grid;
 
-          grid-template-columns:
-            1.5fr
-            1fr
-            0.8fr
-            0.8fr;
+          grid-template-columns: 2fr 1.3fr 0.9fr 0.9fr;
 
           align-items: center;
 
@@ -524,10 +559,6 @@ const handleUpdate = () => {
 
         .penilaian-status.waiting {
           color: #64748b;
-        }
-
-        .penilaian-status.draft {
-          color: #d97706;
         }
 
         .penilaian-status.done {
@@ -636,7 +667,7 @@ const handleUpdate = () => {
         .detail-student-grid {
           display: grid;
 
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(4, 1fr);
 
           gap: 14px;
         }
@@ -802,27 +833,6 @@ const handleUpdate = () => {
           margin-top: 24px;
         }
 
-        .btn-draft,
-.btn-submit,
-.btn-update {
-  min-width: 160px;
-  padding: 11px 20px;
-  border-radius: 10px;
-
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-draft {
-  border: 1px solid #d9c5e5;
-  background: white;
-  color: #a82bea;
-}
-
 .btn-submit,
 .btn-update {
   border: 1px solid #b432f2;
@@ -842,20 +852,6 @@ const handleUpdate = () => {
   color: #94a3b8;
   cursor: not-allowed;
 }
-
-        .btn-draft {
-          border: 1px solid #d9c5e5;
-
-          background: white;
-          color: #a82bea;
-        }
-
-        .btn-submit {
-          border: 1px solid #b432f2;
-
-          background: #b432f2;
-          color: white;
-        }
 
 
         /* ================= RESPONSIVE ================= */
@@ -905,11 +901,6 @@ const handleUpdate = () => {
 
           .detail-buttons {
             flex-direction: column-reverse;
-          }
-
-          .btn-draft,
-          .btn-submit {
-            width: 100%;
           }
 
           .nilai-table {
@@ -1187,9 +1178,6 @@ const handleUpdate = () => {
 
   {!isSubmitted || isEditing ? (
     <>
-      <button className="btn-draft">
-        Simpan Draft
-      </button>
 
       <button
         className="btn-submit"

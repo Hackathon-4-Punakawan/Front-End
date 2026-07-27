@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PenilaianMahasiswa from "./PenilaianMahasiswa";
+import RiwayatMahasiswa from "./RiwayatMahasiswa";
 import {
   LogOut,
   Building,
@@ -11,6 +12,7 @@ import {
   Clock,
   CheckCircle,
   ClipboardCheck,
+  LayoutGrid,
 } from "lucide-react";
 import amikomLogo from "../../../assets/amikom.png";
 
@@ -55,7 +57,7 @@ const MitraDashboard = () => {
       division: 'Backend Developer',
       period: 'Feb - Mei 2026',
       internshipStatus: 'Aktif',
-      evaluation: 'Draft',
+      evaluation: 'Belum Dinilai',
     },
     {
       id: 3,
@@ -90,7 +92,7 @@ const MitraDashboard = () => {
       name: 'Fajar Ramadhan',
       division: 'Mobile Developer',
       period: 'Feb - Mei 2026',
-      internshipStatus: 'Aktif',
+      internshipStatus: 'Selesai',
       evaluation: 'Sudah Dinilai',
     },
     {
@@ -99,7 +101,7 @@ const MitraDashboard = () => {
       name: 'Nadia Putri',
       division: 'Quality Assurance',
       period: 'Feb - Mei 2026',
-      internshipStatus: 'Aktif',
+      internshipStatus: 'Selesai',
       evaluation: 'Sudah Dinilai',
     },
     {
@@ -186,6 +188,83 @@ const MitraDashboard = () => {
   );
 
   color: #ffffff;
+}
+
+.active-intern-table {
+  width: 100%;
+  margin-top: 24px;
+}
+
+.active-intern-header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.3fr 1fr;
+  gap: 24px;
+
+  padding: 0 24px 14px;
+
+  border-bottom: 1px solid #eee8f5;
+}
+
+.active-intern-header span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a0bd;
+}
+
+.active-intern-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.active-intern-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.3fr 1fr;
+  gap: 24px;
+
+  align-items: center;
+
+  padding: 22px 24px;
+
+  border-bottom: 1px solid #eee8f5;
+}
+
+.active-intern-row:last-child {
+  border-bottom: none;
+}
+
+.active-intern-student {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.active-intern-student strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: #07142d;
+}
+
+.active-intern-student span {
+  font-size: 13px;
+  color: #9aa6c3;
+}
+
+.active-intern-position,
+.active-intern-period {
+  font-size: 14px;
+  font-weight: 600;
+  color: #07142d;
+}
+
+.active-intern-status {
+  display: inline-block;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  color: #64748b;
+
+  text-transform: uppercase;
 }
         
         /* =========================================
@@ -414,11 +493,11 @@ const MitraDashboard = () => {
         .intern-top > div > span { color: #94a3b8; font-size: 11px; }
         .active-badge { flex-shrink: 0; color: #64748b; font-size: 9px; font-weight: 800; }
         .intern-details {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 20px;
-          margin-top: 20px;
-        }
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 20px;
+}
         .detail-label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 9px; font-weight: 800; }
         .intern-details strong { display: block; overflow-wrap: anywhere; font-size: 12px; }
 
@@ -554,6 +633,16 @@ const MitraDashboard = () => {
   {!isSidebarCollapsed && (
     <span>Penilaian Mahasiswa</span>
   )}
+</button>
+
+<button
+  className={`sidebar-menu-item ${
+    activeMenu === "riwayat" ? "active" : ""
+  }`}
+  onClick={() => setActiveMenu("riwayat")}
+>
+  <Clock size={22} />
+  <span>Riwayat Mahasiswa</span>
 </button>
 
           </div>
@@ -873,73 +962,46 @@ const MitraDashboard = () => {
       </div>
 
 
-      <div className="intern-list">
+      <div className="active-intern-table">
 
-        {interns
-          .filter((intern) => intern.internshipStatus === 'Aktif')
-          .slice(0, 3)
-          .map((intern) => (
+  <div className="active-intern-header">
+    <span>MAHASISWA</span>
+    <span>POSISI</span>
+    <span>PERIODE</span>
+    <span>STATUS</span>
+  </div>
 
-            <div
-              className="intern-card"
-              key={intern.id}
-            >
+  <div className="active-intern-body">
+    {interns
+      .filter((intern) => intern.internshipStatus === "Aktif")
+      .slice(0, 3)
+      .map((intern) => (
+        <div className="active-intern-row" key={intern.id}>
 
-              <div className="intern-top">
+          <div className="active-intern-student">
+            <strong>{intern.name}</strong>
+            <span>{intern.nim}</span>
+          </div>
 
-                <div>
-                  <h4>{intern.name}</h4>
-                  <span>{intern.nim}</span>
-                </div>
+          <div className="active-intern-position">
+            {intern.division}
+          </div>
 
-                <span className="active-badge">
-                  SEDANG BERJALAN
-                </span>
+          <div className="active-intern-period">
+            {intern.period}
+          </div>
 
-              </div>
+          <div>
+            <span className="active-intern-status">
+              Sedang Berjalan
+            </span>
+          </div>
 
+        </div>
+      ))}
+  </div>
 
-              <div className="intern-details">
-
-                <div>
-                  <span className="detail-label">
-                    DIVISI
-                  </span>
-
-                  <strong>
-                    {intern.division}
-                  </strong>
-                </div>
-
-
-                <div>
-                  <span className="detail-label">
-                    PERIODE
-                  </span>
-
-                  <strong>
-                    {intern.period}
-                  </strong>
-                </div>
-
-
-                <div>
-                  <span className="detail-label">
-                    PENILAIAN
-                  </span>
-
-                  <strong>
-                    {intern.evaluation}
-                  </strong>
-                </div>
-
-              </div>
-
-            </div>
-
-          ))}
-
-      </div>
+</div>
 
     </section>
 
@@ -961,7 +1023,6 @@ const MitraDashboard = () => {
         {interns.slice(0, 4).map((intern) => {
 
           const isDone = intern.evaluation === 'Sudah Dinilai';
-          const isDraft = intern.evaluation === 'Draft';
 
           return (
             <div
@@ -977,20 +1038,14 @@ const MitraDashboard = () => {
                 </div>
 
                 <span
-                  className={
-                    isDone
-                      ? 'evaluation-status done'
-                      : isDraft
-                      ? 'evaluation-status draft'
-                      : 'evaluation-status waiting'
-                  }
-                >
-                  {isDone
-                    ? 'SUDAH DINILAI'
-                    : isDraft
-                    ? 'DRAFT'
-                    : 'BELUM DINILAI'}
-                </span>
+  className={
+    isDone
+      ? 'evaluation-status done'
+      : 'evaluation-status waiting'
+  }
+>
+  {isDone ? 'SUDAH DINILAI' : 'BELUM DINILAI'}
+</span>
 
               </div>
 
@@ -1031,8 +1086,14 @@ const MitraDashboard = () => {
 
   {/* HALAMAN PENILAIAN MAHASISWA */}
   {activeMenu === "penilaian" && (
-    <PenilaianMahasiswa />
-  )}
+  <PenilaianMahasiswa
+    interns={interns}
+  />
+)}
+
+{activeMenu === "riwayat" && (
+  <RiwayatMahasiswa />
+)}
 
 </main>
 
