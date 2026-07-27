@@ -3,7 +3,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import amikomLogo from '../../../assets/amikom.png';
 import PengajuanMagang from './PengajuanMagang';
-import StatusKonversi from './StatusKonversi';
 import {
   LogOut,
   LayoutDashboard,
@@ -25,8 +24,21 @@ import {
   Upload,
   Eye,
   FileText,
-  ChevronLeft
+  ChevronLeft,
+  User,
+  Save,
+  Phone,
+  Mail
 } from 'lucide-react';
+
+const PREDEFINED_COURSES = [
+  { id: 'IF184523', code: 'IF184523', name: 'Pengembangan Aplikasi Web Lanjut', sks: 4, cpmk: 'Mampu merancang dan mengimplementasikan arsitektur web modern yang scalable.' },
+  { id: 'IF184524', code: 'IF184524', name: 'Manajemen Proyek Perangkat Lunak', sks: 3, cpmk: 'Mampu merencanakan, mengelola, dan memantau daur hidup pengembangan software.' },
+  { id: 'IF184525', code: 'IF184525', name: 'Keamanan Sistem Informasi', sks: 3, cpmk: 'Mampu menganalisis kerentanan keamanan dan menerapkan protokol enkripsi/proteksi.' },
+  { id: 'IF184526', code: 'IF184526', name: 'Pembelajaran Mesin (Machine Learning)', sks: 4, cpmk: 'Mampu membangun, melatih, dan mengevaluasi model prediktif cerdas berbasis data.' },
+  { id: 'IF184527', code: 'IF184527', name: 'Kecerdasan Buatan (AI)', sks: 3, cpmk: 'Mampu mendesain agen cerdas menggunakan logika heuristik dan jaringan saraf.' },
+  { id: 'IF184528', code: 'IF184528', name: 'Desain UI/UX & Interaksi', sks: 3, cpmk: 'Mampu merancang wireframe dan antarmuka interaktif yang memiliki usabilitas tinggi.' },
+];
 
 const MahasiswaDashboard = () => {
   const { currentUser, logout, getRoleLabel } = useAuth();
@@ -36,11 +48,28 @@ const MahasiswaDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   // ID Magang states for initial registration and approval
   const [idMagangStatus, setIdMagangStatus] = useState('none'); // 'none' | 'pending' | 'approved'
   const [idMagangValue, setIdMagangValue] = useState('');
   const [idMagangData, setIdMagangData] = useState(null);
+
+  // Elevated state for SKS Conversion
+  const [conversionState, setConversionState] = useState({
+    status: 'none', // 'none' | 'pending' | 'approved'
+    tanggalPengajuan: '',
+    courses: []
+  });
+
+  // Elevated states for internship wizard progression to prevent reset on tab change
+  const [proposals, setProposals] = useState([]);
+  const [suratPengantar, setSuratPengantar] = useState(null);
+  const [dosenPembimbing, setDosenPembimbing] = useState(null);
+  const [currentWizard, setCurrentWizard] = useState(null);
+
+  // State for Surat Akhir submitted in Magang tab
+  const [suratAkhirSubmitted, setSuratAkhirSubmitted] = useState(false);
 
   // Custom Alert Modal State
   const [customAlert, setCustomAlert] = useState({
@@ -87,6 +116,41 @@ const MahasiswaDashboard = () => {
     triggerAlert('Fitur Simulasi', msg, 'info');
   };
 
+  // Dynamic calculations for the Dashboard tab when populated
+  const totalSks = conversionState.courses.reduce((acc, row) => {
+    const course = PREDEFINED_COURSES.find(c => c.id === row.selectedCourseId);
+    return acc + (course ? course.sks : 0);
+  }, 0);
+
+  const approvedSks = conversionState.status === 'DISETUJUI' ? totalSks : 0;
+  const progressPercent = totalSks > 0 ? Math.round((approvedSks / totalSks) * 100) : 0;
+
+  const calculateGrade = (angka) => {
+    const n = parseFloat(angka);
+    if (isNaN(n) || angka === '') return '-';
+    if (n >= 80) return 'A';
+    if (n >= 75) return 'B+';
+    if (n >= 70) return 'B';
+    if (n >= 65) return 'C+';
+    if (n >= 60) return 'C';
+    if (n >= 50) return 'D';
+    return 'E';
+  };
+
+  const handleDashboardGradeChange = (courseIdx, value) => {
+    setConversionState(prev => {
+      const updatedCourses = [...prev.courses];
+      updatedCourses[courseIdx] = {
+        ...updatedCourses[courseIdx],
+        nilaiAngka: value
+      };
+      return {
+        ...prev,
+        courses: updatedCourses
+      };
+    });
+  };
+
   return (
     <div className="custom-dashboard-container">
       {/* 1. Left Sidebar */}
@@ -121,13 +185,6 @@ const MahasiswaDashboard = () => {
             >
               <FileCheck2 size={18} />
               {!isSidebarCollapsed && <span>Pengajuan Magang</span>}
-            </button>
-            <button
-              onClick={() => setActiveTab('conversion')}
-              className={`nav-item ${activeTab === 'conversion' ? 'active' : ''}`}
-            >
-              <GitCompare size={18} />
-              {!isSidebarCollapsed && <span>Status Konversi</span>}
             </button>
           </div>
         </nav>
@@ -240,20 +297,48 @@ const MahasiswaDashboard = () => {
             <button className="icon-btn" onClick={() => handleAlertAction('Pencarian modul...')}>
               <Search size={20} />
             </button>
-            <div className="notification-wrapper">
-              <button className="icon-btn" onClick={() => handleAlertAction('Membuka panel notifikasi...')}>
+            <div className="notification-wrapper" style={{ position: 'relative' }}>
+              <button className="icon-btn" onClick={() => setIsNotificationOpen(!isNotificationOpen)}>
                 <Bell size={20} />
-                <span className="notification-dot"></span>
+                {conversionState.status !== 'none' && <span className="notification-dot"></span>}
               </button>
+
+              {isNotificationOpen && (
+                <div className="notification-dropdown">
+                  <div className="dropdown-header">
+                    <h3>Notifikasi</h3>
+                    <span className="new-badge">1 Baru</span>
+                  </div>
+                  <div className="dropdown-list">
+                    <div className="dropdown-item">
+                      <div className="item-icon-wrap blue-bg">
+                        <FileText size={16} />
+                      </div>
+                      <div className="item-details">
+                        {conversionState.status === 'DISETUJUI' ? (
+                          <p><strong>Konversi Disetujui</strong>: Pengajuan konversi SKS Anda telah disetujui secara resmi oleh Kaprodi.</p>
+                        ) : conversionState.status === 'PENDING' ? (
+                          <p><strong>Pengajuan Terkirim</strong>: Pendaftaran magang dan matriks konversi Anda berhasil dikirim ke Kaprodi.</p>
+                        ) : (
+                          <p><strong>Belum Ada Pengajuan</strong>: Silakan selesaikan pengajuan magang Anda untuk memulai proses.</p>
+                        )}
+                        <span className="item-time">Baru saja</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+            
+            <div className="header-divider"></div>
             
             <div className="profile-badge">
               <div className="profile-info">
                 <span className="profile-name">{currentUser?.name || 'Andi Pratama'}</span>
-                <span className="profile-role">24.11.5956</span>
+                <span className="profile-role">Mahasiswa Informatika</span>
               </div>
               <div className="profile-avatar">
-                {currentUser?.name ? currentUser.name.charAt(0) : 'A'}
+                <User size={18} />
               </div>
             </div>
           </div>
@@ -265,278 +350,367 @@ const MahasiswaDashboard = () => {
           {activeTab === 'dashboard' && (
             <div className="tab-pane fade-in">
               <div className="page-heading">
-                <h1 className="main-title">Dashboard</h1>
-                <p className="main-subtitle">
-                  Pantau progres magang dan konversi SKS Anda. Pastikan semua dokumen terverifikasi untuk kelancaran konversi.
-                </p>
+                <h1 className="main-title">Dashboard Mahasiswa</h1>
               </div>
 
-              {/* Top Row Layout */}
-              <div className="dashboard-top-row">
-                {/* Program Card */}
-                <div className="program-summary-card">
-                  <div className="card-header-badge">
-                    <span className="running-badge">Sedang Berjalan</span>
-                  </div>
-                  <h2 className="program-title">Studi Independen Bersertifikat</h2>
-                  <div className="program-partner">
-                    <FolderOpen size={16} />
-                    <span>PT Dicoding Academy Indonesia</span>
-                  </div>
+              {conversionState.status === 'none' ? (
+                // Dashboard is locked until internship submission wizard is completed (i.e. SKS conversion submitted)
+                <div className="dashboard-locked-container">
+                  <div className="locked-card">
+                    <div className="locked-icon-wrapper">
+                      <AlertCircle size={32} />
+                    </div>
+                    <h2 className="locked-title">Pengajuan Magang Belum Selesai</h2>
+                    <p className="locked-description">
+                      Anda harus melengkapi seluruh tahapan pengajuan magang di menu <strong>Pengajuan Magang</strong> hingga selesai terlebih dahulu sebelum isi dashboard dapat ditampilkan secara otomatis.
+                    </p>
 
-                  <div className="progress-container">
-                    <div className="progress-labels">
-                      <span className="progress-target">Target Konversi <strong>15</strong> / 20 SKS</span>
-                      <span className="progress-percent">75% Tercapai</span>
-                    </div>
-                    <div className="progress-bar-track">
-                      <div className="progress-bar-fill" style={{ width: '75%' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Indicator Boxes */}
-                  <div className="indicator-grid">
-                    <div className="indicator-box color-purple">
-                      <span className="ind-val">8</span>
-                      <span className="ind-lbl">MK Diajukan</span>
-                    </div>
-                    <div className="indicator-box color-blue">
-                      <span className="ind-val">5</span>
-                      <span className="ind-lbl">Disetujui Kaprodi</span>
-                    </div>
-                    <div className="indicator-box color-blue">
-                      <span className="ind-val">3</span>
-                      <span className="ind-lbl">Proses Dosen</span>
-                    </div>
-                    <div className="indicator-box color-gray">
-                      <span className="ind-val">4</span>
-                      <span className="ind-lbl">Bulan Tersisa</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Actions & Notifications Panel */}
-                <div className="dashboard-side-actions">
-                  <button className="action-card-btn purple-theme" onClick={() => setActiveTab('conversion')}>
-                    <div className="act-content">
-                      <h4>Ajukan Konversi</h4>
-                      <span>Mata kuliah baru</span>
-                    </div>
-                    <ArrowRight size={18} />
-                  </button>
-
-                  <button className="action-card-btn white-theme" onClick={() => setActiveTab('conversion')}>
-                    <div className="act-content">
-                      <h4>Cek Status</h4>
-                      <span>Riwayat pengajuan</span>
-                    </div>
-                    <ArrowRight size={18} />
-                  </button>
-
-                  {/* Sidebar Notifications Widget */}
-                  <div className="notifications-widget">
-                    <div className="widget-header">
-                      <h3>Notifikasi</h3>
-                      <span className="new-badge">2 Baru</span>
-                    </div>
-                    <div className="widget-list">
-                      <div className="widget-item">
-                        <div className="item-icon-wrap blue-bg">
-                          <FileText size={16} />
+                    {/* Step Tracker */}
+                    <div className="locked-steps-tracker">
+                      <div className="tracker-header">Progress Pengajuan Magang Anda</div>
+                      <div className="tracker-steps-grid">
+                        <div className={`tracker-step-item ${idMagangStatus === 'approved' ? 'completed' : idMagangStatus === 'pending' ? 'pending' : ''}`}>
+                          <div className="step-number">1</div>
+                          <div className="step-name">ID Magang</div>
+                          <div className="step-status">{idMagangStatus === 'approved' ? 'Selesai' : idMagangStatus === 'pending' ? 'Pending' : 'Belum'}</div>
                         </div>
-                        <div className="item-details">
-                          <p><strong>Feedback Dosen Pembimbing</strong>: Laporan minggu ke-4 sudah baik, mohon tambahkan detail implementasi di bagian teknis.</p>
-                          <span className="item-time">2 jam yang lalu</span>
+                        <div className={`tracker-step-item ${proposals[0]?.status === 'DISETUJUI' ? 'completed' : proposals[0] ? 'pending' : ''}`}>
+                          <div className="step-number">2</div>
+                          <div className="step-name">Proposal</div>
+                          <div className="step-status">{proposals[0]?.status === 'DISETUJUI' ? 'Selesai' : proposals[0] ? 'Pending' : 'Belum'}</div>
                         </div>
-                      </div>
-                      <div className="widget-item">
-                        <div className="item-icon-wrap purple-bg">
-                          <CheckCircle2 size={16} />
+                        <div className={`tracker-step-item ${suratPengantar?.status === 'DISETUJUI' ? 'completed' : suratPengantar ? 'pending' : ''}`}>
+                          <div className="step-number">3</div>
+                          <div className="step-name">Surat Pengantar</div>
+                          <div className="step-status">{suratPengantar?.status === 'DISETUJUI' ? 'Selesai' : suratPengantar ? 'Pending' : 'Belum'}</div>
                         </div>
-                        <div className="item-details">
-                          <p><strong>Konversi Disetujui</strong>: Pengajuan konversi untuk Pemrograman Web Lanjut disetujui Kaprodi.</p>
-                          <span className="item-time">1 hari yang lalu</span>
+                        <div className={`tracker-step-item ${dosenPembimbing?.status === 'DISETUJUI' ? 'completed' : dosenPembimbing ? 'pending' : ''}`}>
+                          <div className="step-number">4</div>
+                          <div className="step-name">Dosen Pembimbing</div>
+                          <div className="step-status">{dosenPembimbing?.status === 'DISETUJUI' ? 'Selesai' : dosenPembimbing ? 'Pending' : 'Belum'}</div>
+                        </div>
+                        <div className={`tracker-step-item ${conversionState.status !== 'none' ? 'completed' : ''}`}>
+                          <div className="step-number">5</div>
+                          <div className="step-name">Konversi SKS</div>
+                          <div className="step-status">{conversionState.status !== 'none' ? 'Selesai' : 'Belum'}</div>
                         </div>
                       </div>
                     </div>
+
+                    <button className="btn-brand-primary locked-cta" onClick={() => setActiveTab('internship')}>
+                      <span>Isi Pengajuan Magang Sekarang</span>
+                      <ArrowRight size={16} />
+                    </button>
                   </div>
                 </div>
-              </div>
+              ) : (
+                // Full Dynamic Dashboard Contents
+                <>
+                  {/* Top Row Layout */}
+                  <div className="dashboard-top-row">
+                    {/* Program Card */}
+                    <div className="program-summary-card">
+                      <div className="card-header-badge">
+                        <span className="running-badge">
+                          {conversionState.status === 'DISETUJUI' ? 'Selesai Validasi' : 'Sedang Berjalan'}
+                        </span>
+                      </div>
+                      <h2 className="program-title">
+                        {proposals[0]?.programDiikuti || 'Program Magang MBKM'}
+                      </h2>
+                      <div className="program-partner">
+                        <FolderOpen size={16} />
+                        <span>{proposals[0]?.namaInstansi || '-'}</span>
+                      </div>
 
-              {/* Middle Row Layout */}
-              <div className="dashboard-mid-row">
-                {/* Active Internship Application */}
-                <div className="panel-container width-55">
-                  <h3 className="section-subheading">Pengajuan Magang Aktif</h3>
-                  <p className="panel-subtitle-text">Daftar program magang yang sedang Anda ikuti.</p>
-                  
-                  <div className="internship-status-box">
-                    <div className="box-header">
-                      <div>
-                        <h4>PT Dicoding Academy Indonesia</h4>
-                        <span>Studi Independen Bersertifikat</span>
+                      <div className="progress-container">
+                        <div className="progress-labels">
+                          <span className="progress-target">
+                            Target Konversi <strong>{approvedSks}</strong> / {totalSks} SKS
+                          </span>
+                          <span className="progress-percent">{progressPercent}% Tercapai</span>
+                        </div>
+                        <div className="progress-bar-track">
+                          <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }}></div>
+                        </div>
                       </div>
-                      <span className="running-badge small">Sedang Berjalan</span>
+
+                      {/* Indicator Boxes */}
+                      <div className="indicator-grid">
+                        <div className="indicator-box color-purple">
+                          <span className="ind-val">{conversionState.courses.length}</span>
+                          <span className="ind-lbl">MK Diajukan</span>
+                        </div>
+                        <div className="indicator-box color-blue">
+                          <span className="ind-val">
+                            {conversionState.status === 'DISETUJUI' ? conversionState.courses.length : 0}
+                          </span>
+                          <span className="ind-lbl">Disetujui Kaprodi</span>
+                        </div>
+                        <div className="indicator-box color-blue">
+                          <span className="ind-val">
+                            {conversionState.status === 'PENDING' ? conversionState.courses.length : 0}
+                          </span>
+                          <span className="ind-lbl">Proses Dosen</span>
+                        </div>
+                        <div className="indicator-box color-gray">
+                          <span className="ind-val">{suratPengantar?.periodeMagang || '6 Bulan'}</span>
+                          <span className="ind-lbl">Durasi Magang</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="box-meta-grid">
-                      <div>
-                        <span className="meta-label">Durasi</span>
-                        <span className="meta-val">6 Bulan</span>
-                      </div>
-                      <div>
-                        <span className="meta-label">Posisi</span>
-                        <span className="meta-val">Front-End Dev</span>
-                      </div>
-                      <div>
-                        <span className="meta-label">Mulai</span>
-                        <span className="meta-val">16 Ags 2023</span>
+
+                    {/* Sidebar Dosen Pembimbing Widget */}
+                    <div className="dashboard-side-actions">
+                      <div className="sidebar-box-card" style={{ height: '100%', margin: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', boxSizing: 'border-box', padding: '20px' }}>
+                        <div className="box-card-title" style={{ marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid #f6f1fb' }}>
+                          <User size={18} />
+                          <span>Dosen Pembimbing</span>
+                        </div>
+                        {dosenPembimbing && dosenPembimbing.status === 'DISETUJUI' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '14px', width: '100%' }}>
+                            {/* Gradient Avatar */}
+                            <div style={{
+                              width: '56px',
+                              height: '56px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #B432F2 0%, #8900ff 100%)',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 4px 12px rgba(180, 50, 242, 0.25)',
+                              fontSize: '18px',
+                              fontWeight: '800',
+                              fontFamily: "'Outfit', sans-serif"
+                            }}>
+                              SW
+                            </div>
+
+                            {/* Name & Badge */}
+                            <div>
+                              <h4 style={{ margin: '0 0 6px 0', fontSize: '14.5px', fontWeight: '800', color: '#0f172a', fontFamily: "'Outfit', sans-serif", lineHeight: '1.3' }}>
+                                Prof. Dr. Suwarto, M.Kom.
+                              </h4>
+                              <span style={{ fontSize: '9px', fontWeight: '800', color: '#B432F2', background: '#f8ebff', padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'inline-block' }}>
+                                Dosen Informatika
+                              </span>
+                            </div>
+
+                            {/* Contacts */}
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #f6f1fb', paddingTop: '12px', marginTop: '2px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', justifyContent: 'center' }}>
+                                <Mail size={13} style={{ color: '#B432F2', flexShrink: 0 }} />
+                                <span style={{ fontWeight: '600' }}>suwarto.dosen@amikom.ac.id</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', justifyContent: 'center' }}>
+                                <Phone size={13} style={{ color: '#B432F2', flexShrink: 0 }} />
+                                <span style={{ fontWeight: '600' }}>+62 812-3456-7890</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '20px 10px', color: '#94a3b8', gap: '12px' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f8fafc', color: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #f1f5f9' }}>
+                              <User size={22} />
+                            </div>
+                            <div>
+                              <h5 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '800', color: '#64748b' }}>Belum Dialokasikan</h5>
+                              <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>Selesaikan pengajuan Dosen Pembimbing untuk alokasi.</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <button className="add-dashed-btn" onClick={() => setActiveTab('internship')}>
-                    <Plus size={16} />
-                    <span>Tambah Pengajuan Baru</span>
-                  </button>
-                </div>
+                  {/* Middle Row Layout */}
+                  <div className="dashboard-mid-row">
+                    {/* Final Letter & Thank You Note Submission */}
+                    <div className="panel-container width-55">
+                      <h3 className="section-subheading">Surat Akhir & Ucapan Terima Kasih</h3>
+                      <p className="panel-subtitle-text">Pengajuan administrasi akhir setelah selesai melaksanakan program magang.</p>
+                      
+                      <div className="internship-status-box" style={{ background: '#fcfbfe', borderColor: '#f3e8ff' }}>
+                        <div className="box-header" style={{ marginBottom: '16px', borderBottom: '1.5px solid #f3e8ff', paddingBottom: '12px' }}>
+                          <div>
+                            <h4 style={{ fontSize: '11.5px', color: '#7c3aed', fontWeight: '800', letterSpacing: '0.3px', textTransform: 'uppercase', lineHeight: '1.4', fontFamily: "'Outfit', sans-serif" }}>
+                              PENGAJUAN SURAT AKHIR DAN UCAPAN TERIMA KASIH MAGANG MAHASISWA FAKULTAS ILMU KOMPUTER
+                            </h4>
+                          </div>
+                          <span className="running-badge small" style={suratAkhirSubmitted ? { background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' } : { background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>
+                            {suratAkhirSubmitted ? 'PENDING' : 'SIAP AJUKAN'}
+                          </span>
+                        </div>
+                        <div className="box-meta-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                          <div>
+                            <span className="meta-label" style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Email</span>
+                            <span className="meta-val" style={{ fontSize: '12.5px', color: '#334155', fontWeight: '700', marginTop: '3px', display: 'block' }}>
+                              {currentUser?.email || 'budi.mahasiswa@amikom.ac.id'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="meta-label" style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Periode Magang</span>
+                            <span className="meta-val" style={{ fontSize: '12.5px', color: '#334155', fontWeight: '700', marginTop: '3px', display: 'block' }}>
+                              {suratPengantar?.periodeMagang || '6 Bulan'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="meta-label" style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Tanggal Mulai Magang</span>
+                            <span className="meta-val" style={{ fontSize: '12.5px', color: '#334155', fontWeight: '700', marginTop: '3px', display: 'block' }}>
+                              {suratPengantar?.tanggalMulai || '2026-07-27'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="meta-label" style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Tanggal Berakhir Magang</span>
+                            <span className="meta-val" style={{ fontSize: '12.5px', color: '#334155', fontWeight: '700', marginTop: '3px', display: 'block' }}>
+                              {suratPengantar?.tanggalSelesai || '2026-12-27'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-                {/* Conversion Subject Progress timelines */}
-                <div className="panel-container width-45">
-                  <h3 className="section-subheading">Progress Konversi per Mata Kuliah</h3>
-                  <p className="panel-subtitle-text">Pantau tahapan validasi untuk setiap mata kuliah.</p>
-
-                  <div className="timeline-items">
-                    {/* Item 1 */}
-                    <div className="timeline-row">
-                      <div className="row-info">
-                        <span className="subject-name">Pemrograman Web Lanjut (3 SKS)</span>
-                        <span className="subject-status color-blue">Disetujui Kaprodi</span>
-                      </div>
-                      <div className="timeline-track-bar">
-                        <div className="bar-segment active"></div>
-                        <div className="bar-segment active"></div>
-                        <div className="bar-segment active"></div>
-                      </div>
-                      <div className="timeline-labels">
-                        <span>Diajukan</span>
-                        <span style={{ textAlign: 'center' }}>Validasi Dosen</span>
-                        <span style={{ textAlign: 'right' }}>SK Kaprodi</span>
-                      </div>
+                      {suratAkhirSubmitted ? (
+                        <div style={{ background: '#fdfaee', border: '1px dashed #fcd34d', borderRadius: '12px', padding: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontSize: '12.5px', fontWeight: '700', justifyContent: 'center' }}>
+                          <Clock size={16} />
+                          <span>Pengajuan Surat Akhir Sedang Diproses Dosen/Fakultas</span>
+                        </div>
+                      ) : (
+                        <button 
+                          className="add-dashed-btn" 
+                          onClick={() => {
+                            setSuratAkhirSubmitted(true);
+                            triggerAlert('Pengajuan Berhasil', 'Surat Akhir dan Ucapan Terima Kasih Anda berhasil diajukan dan sedang dalam proses verifikasi Fakultas!', 'success');
+                          }}
+                        >
+                          <Plus size={16} />
+                          <span>Kirim Pengajuan Surat Akhir & Ucapan Terima Kasih</span>
+                        </button>
+                      )}
                     </div>
 
-                    {/* Item 2 */}
-                    <div className="timeline-row">
-                      <div className="row-info">
-                        <span className="subject-name">Proyek Perangkat Lunak (4 SKS)</span>
-                        <span className="subject-status color-gray">Menunggu Dosen</span>
-                      </div>
-                      <div className="timeline-track-bar">
-                        <div className="bar-segment active"></div>
-                        <div className="bar-segment"></div>
-                        <div className="bar-segment"></div>
-                      </div>
-                      <div className="timeline-labels">
-                        <span>Diajukan</span>
-                        <span style={{ textAlign: 'center' }}>Validasi Dosen</span>
-                        <span style={{ textAlign: 'right' }}>SK Kaprodi</span>
-                      </div>
-                    </div>
+                    {/* Conversion Subject Progress timelines */}
+                    <div className="panel-container width-45">
+                      <h3 className="section-subheading">Progress Konversi per Mata Kuliah</h3>
+                      <p className="panel-subtitle-text">Pantau tahapan validasi untuk setiap mata kuliah.</p>
 
-                    {/* Item 3 */}
-                    <div className="timeline-row">
-                      <div className="row-info">
-                        <span className="subject-name">Etika Profesi (2 SKS)</span>
-                        <span className="subject-status color-purple">Selesai</span>
-                      </div>
-                      <div className="timeline-track-bar">
-                        <div className="bar-segment active-purple"></div>
-                        <div className="bar-segment active-purple"></div>
-                        <div className="bar-segment active-purple"></div>
-                      </div>
-                      <div className="timeline-labels">
-                        <span>Diajukan</span>
-                        <span style={{ textAlign: 'center' }}>Validasi Dosen</span>
-                        <span style={{ textAlign: 'right' }}>SK Kaprodi</span>
+                      <div className="timeline-items">
+                        {conversionState.courses.map((row, idx) => {
+                          const course = PREDEFINED_COURSES.find(c => c.id === row.selectedCourseId);
+                          if (!course) return null;
+                          const isCourseApproved = conversionState.status === 'DISETUJUI';
+                          const statusLabel = isCourseApproved ? 'Selesai' : 'Menunggu Kaprodi';
+                          const statusColor = isCourseApproved ? 'color-purple' : 'color-gray';
+
+                          return (
+                            <div className="timeline-row" key={idx}>
+                              <div className="row-info">
+                                <span className="subject-name">{course.name} ({course.sks} SKS)</span>
+                                <span className={`subject-status ${statusColor}`}>{statusLabel}</span>
+                              </div>
+                              <div className="timeline-track-bar">
+                                <div className="bar-segment active"></div>
+                                <div className={`bar-segment ${conversionState.status !== 'none' ? 'active' : ''}`}></div>
+                                <div className={`bar-segment ${isCourseApproved ? 'active-purple' : ''}`}></div>
+                              </div>
+                              <div className="timeline-labels">
+                                <span>Diajukan</span>
+                                <span style={{ textAlign: 'center' }}>Validasi Dosen</span>
+                                <span style={{ textAlign: 'right' }}>SK Kaprodi</span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Bottom Table Row */}
-              <div className="panel-container" style={{ marginTop: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div>
-                    <h3 className="section-subheading">Status Konversi Mata Kuliah</h3>
-                    <p className="panel-subtitle-text">Detail pemetaan modul Industri ke mata kuliah universitas.</p>
+                  {/* Bottom Table Row */}
+                  <div className="panel-container" style={{ marginTop: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <div>
+                        <h3 className="section-subheading">Status Konversi Mata Kuliah</h3>
+                        <p className="panel-subtitle-text">Detail pemetaan modul Industri ke mata kuliah universitas.</p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <button 
+                          className="btn-brand-primary" 
+                          style={{ padding: '8px 16px', fontSize: '12px', background: '#10b981', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}
+                          onClick={() => triggerAlert('Nilai Berhasil Disimpan', 'Nilai angka dan huruf untuk konversi SKS Anda berhasil diperbarui di Dashboard!', 'success')}
+                        >
+                          <Save size={14} />
+                          <span>Simpan Nilai</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="table-responsive">
+                      <table className="custom-data-table">
+                        <thead>
+                          <tr>
+                            <th>Mata Kuliah Amikom</th>
+                            <th style={{ textAlign: 'center' }}>SKS</th>
+                            <th>Objective Pekerjaan Magang</th>
+                            <th style={{ textAlign: 'center', width: '100px' }}>Nilai Angka</th>
+                            <th style={{ textAlign: 'center', width: '90px' }}>Nilai Huruf</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {conversionState.courses.map((row, idx) => {
+                            const course = PREDEFINED_COURSES.find(c => c.id === row.selectedCourseId);
+                            if (!course) return null;
+                            const isCourseApproved = conversionState.status === 'DISETUJUI';
+                            
+                            return (
+                              <tr key={idx}>
+                                <td>
+                                  <div className="cell-primary">{course.name}</div>
+                                  <span className="cell-secondary">{course.code}</span>
+                                </td>
+                                <td style={{ textAlign: 'center', fontWeight: '600' }}>{course.sks}</td>
+                                <td className="cell-primary">{row.objective || '-'}</td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    max="100" 
+                                    value={row.nilaiAngka || ''} 
+                                    onChange={(e) => handleDashboardGradeChange(idx, e.target.value)} 
+                                    placeholder="0-100"
+                                    style={{ 
+                                      fontWeight: '700', 
+                                      fontSize: '13px', 
+                                      background: '#fffbeb', 
+                                      borderColor: '#fde68a', 
+                                      width: '75px', 
+                                      padding: '6px 8px',
+                                      borderRadius: '8px',
+                                      border: '1.5px solid #fde68a',
+                                      textAlign: 'center',
+                                      outline: 'none'
+                                    }}
+                                  />
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <span className={`sk-grade-badge grade-${calculateGrade(row.nilaiAngka).replace(/\+/g, '\\+')}`}>
+                                    {calculateGrade(row.nilaiAngka)}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className={`status-capsule ${isCourseApproved ? 'badge-purple' : 'badge-gray'}`}>
+                                    {isCourseApproved ? 'Disetujui Kaprodi' : 'Menunggu Validasi'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  <button className="text-link-btn" onClick={() => setActiveTab('conversion')}>Lihat Semua &rarr;</button>
-                </div>
-
-                <div className="table-responsive">
-                  <table className="custom-data-table">
-                    <thead>
-                      <tr>
-                        <th>Mata Kuliah Amikom</th>
-                        <th style={{ textAlign: 'center' }}>SKS</th>
-                        <th>Modul Industri</th>
-                        <th>Status</th>
-                        <th style={{ textAlign: 'center' }}>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>
-                          <div className="cell-primary">Pemrograman Web Lanjut</div>
-                          <span className="cell-secondary">OT040</span>
-                        </td>
-                        <td style={{ textAlign: 'center', fontWeight: '600' }}>3</td>
-                        <td className="cell-primary">Front-End Web Developer Expert</td>
-                        <td>
-                          <span className="status-capsule badge-blue">Disetujui Kaprodi</span>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <button className="table-action-icon" onClick={() => handleAlertAction('Detail Konversi Pemrograman Web Lanjut')}>
-                            <ChevronRight size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <div className="cell-primary">Proyek Perangkat Lunak</div>
-                          <span className="cell-secondary">OT045</span>
-                        </td>
-                        <td style={{ textAlign: 'center', fontWeight: '600' }}>4</td>
-                        <td className="cell-primary">Capstone Project</td>
-                        <td>
-                          <span className="status-capsule badge-gray">Menunggu Dosen</span>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <button className="table-action-icon" onClick={() => handleAlertAction('Detail Konversi Proyek Perangkat Lunak')}>
-                            <ChevronRight size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <div className="cell-primary">Etika Profesi</div>
-                          <span className="cell-secondary">DU012</span>
-                        </td>
-                        <td style={{ textAlign: 'center', fontWeight: '600' }}>2</td>
-                        <td className="cell-primary">Soft Skills & Professional Development</td>
-                        <td>
-                          <span className="status-capsule badge-purple">Selesai</span>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <button className="table-action-icon" onClick={() => handleAlertAction('Detail Konversi Etika Profesi')}>
-                            <ChevronRight size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           )}
 
@@ -557,12 +731,17 @@ const MahasiswaDashboard = () => {
               setIdMagangValue={setIdMagangValue}
               idMagangData={idMagangData}
               setIdMagangData={setIdMagangData}
+              conversionState={conversionState}
+              setConversionState={setConversionState}
+              proposals={proposals}
+              setProposals={setProposals}
+              suratPengantar={suratPengantar}
+              setSuratPengantar={setSuratPengantar}
+              dosenPembimbing={dosenPembimbing}
+              setDosenPembimbing={setDosenPembimbing}
+              currentWizard={currentWizard}
+              setCurrentWizard={setCurrentWizard}
             />
-          )}
-
-          {/* TAB 3: STATUS KONVERSI */}
-          {activeTab === 'conversion' && (
-            <StatusKonversi handleAlertAction={handleAlertAction} />
           )}
         </div>
       </div>
@@ -807,46 +986,52 @@ const MahasiswaDashboard = () => {
           border: 2px solid #ffffff;
         }
 
+        .header-divider {
+          width: 1px;
+          height: 28px;
+          background-color: #e2e8f0;
+          margin: 0 4px;
+        }
+
         .profile-badge {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 4px 12px;
-          background-color: #fdfaff;
-          border: 1px solid #f1e9f7;
-          border-radius: 12px;
+          gap: 12px;
+          padding: 4px 0;
+          background-color: transparent;
+          border: none;
         }
 
         .profile-info {
           text-align: right;
           display: flex;
           flex-direction: column;
+          line-height: 1.3;
         }
 
         .profile-name {
-          font-size: 13px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 14px;
           font-weight: 700;
-          color: #0f172a;
+          color: #1e293b;
         }
 
         .profile-role {
           font-size: 11px;
-          font-weight: 600;
-          color: #94a3b8;
+          font-weight: 500;
+          color: #64748b;
         }
 
         .profile-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          background-color: #B432F2;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #a855f7, #9333ea);
           color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
-          font-weight: 700;
-          font-family: 'Outfit', sans-serif;
+          box-shadow: 0 3px 8px rgba(147, 51, 234, 0.2);
         }
 
         /* VIEWPORT CONTENT & MAIN GRID */
@@ -2223,6 +2408,283 @@ const MahasiswaDashboard = () => {
         }
         .btn-alert-modal-close.info:hover {
           background-color: #2563eb;
+        }
+
+        /* GRADE BADGE STYLES */
+        .sk-grade-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 11.5px;
+          font-weight: 800;
+        }
+        .sk-grade-badge.grade-A { background: #dcfce7; color: #15803d; }
+        .sk-grade-badge.grade-B\\+ { background: #dcfce7; color: #16a34a; }
+        .sk-grade-badge.grade-B { background: #eff6ff; color: #1d4ed8; }
+        .sk-grade-badge.grade-C\\+ { background: #fef9c3; color: #a16207; }
+        .sk-grade-badge.grade-C { background: #fef9c3; color: #ca8a04; }
+        .sk-grade-badge.grade-D { background: #fee2e2; color: #b91c1c; }
+        .sk-grade-badge.grade-E { background: #fee2e2; color: #ef4444; }
+        .sk-grade-badge.grade-- { background: #f1f5f9; color: #94a3b8; }
+
+        /* NOTIFICATION DROPDOWN STYLES */
+        .notification-dropdown {
+          position: absolute;
+          right: 0;
+          top: 48px;
+          width: 320px;
+          background-color: #ffffff;
+          border: 1px solid #e9e2f2;
+          border-radius: 16px;
+          box-shadow: 0 10px 25px -5px rgba(180, 50, 242, 0.1), 0 8px 10px -6px rgba(180, 50, 242, 0.05);
+          z-index: 1000;
+          padding: 16px;
+          text-align: left;
+          animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes dropdownFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .dropdown-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          border-bottom: 1px solid #f6f1fb;
+          padding-bottom: 10px;
+        }
+
+        .dropdown-header h3 {
+          font-family: 'Outfit', sans-serif;
+          font-size: 14px;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .dropdown-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          max-height: 240px;
+          overflow-y: auto;
+        }
+
+        .dropdown-item {
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          font-size: 11px;
+          line-height: 1.4;
+          padding: 6px 0;
+        }
+
+        .dropdown-item p {
+          color: #334155;
+          margin: 0;
+        }
+
+        /* LOCKED DASHBOARD STATE STYLES */
+        .dashboard-locked-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 40px 0;
+          width: 100%;
+        }
+
+        .locked-card {
+          background-color: #ffffff;
+          border: 1.5px solid #e9e2f2;
+          border-radius: 24px;
+          padding: 40px;
+          max-width: 680px;
+          width: 100%;
+          text-align: center;
+          box-shadow: 0 10px 30px rgba(180, 50, 242, 0.04);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          animation: fadeUp 0.4s ease-out;
+        }
+
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .locked-icon-wrapper {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background-color: #fff7ed;
+          color: #f97316;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 24px;
+          border: 1.5px solid #ffedd5;
+          animation: pulseIcon 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseIcon {
+          0% {
+            box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4);
+          }
+          70% {
+            box-shadow: 0 0 0 12px rgba(249, 115, 22, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+          }
+        }
+
+        .locked-title {
+          font-family: 'Outfit', sans-serif;
+          font-size: 22px;
+          font-weight: 800;
+          color: #0f172a;
+          margin-bottom: 12px;
+        }
+
+        .locked-description {
+          font-size: 14.5px;
+          color: #64748b;
+          line-height: 1.6;
+          max-width: 500px;
+          margin-bottom: 32px;
+        }
+
+        .locked-steps-tracker {
+          width: 100%;
+          background-color: #fdfcff;
+          border: 1.5px solid #f3e8ff;
+          border-radius: 16px;
+          padding: 24px;
+          margin-bottom: 32px;
+          text-align: left;
+        }
+
+        .tracker-header {
+          font-family: 'Outfit', sans-serif;
+          font-size: 14px;
+          font-weight: 800;
+          color: #0f172a;
+          margin-bottom: 16px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .tracker-steps-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 12px;
+        }
+
+        .tracker-step-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 12px 8px;
+          background-color: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          transition: all 0.2s ease;
+        }
+
+        .tracker-step-item.completed {
+          background-color: #f0fdf4;
+          border-color: #bbf7d0;
+          color: #15803d;
+        }
+
+        .tracker-step-item.pending {
+          background-color: #eff6ff;
+          border-color: #bfdbfe;
+          color: #1d4ed8;
+        }
+
+        .step-number {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background-color: #f1f5f9;
+          color: #64748b;
+          font-family: 'Outfit', sans-serif;
+          font-size: 11px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 8px;
+        }
+
+        .tracker-step-item.completed .step-number {
+          background-color: #16a34a;
+          color: #ffffff;
+        }
+
+        .tracker-step-item.pending .step-number {
+          background-color: #2563eb;
+          color: #ffffff;
+        }
+
+        .step-name {
+          font-size: 11px;
+          font-weight: 700;
+          color: #475569;
+          margin-bottom: 4px;
+        }
+
+        .tracker-step-item.completed .step-name {
+          color: #15803d;
+        }
+
+        .tracker-step-item.pending .step-name {
+          color: #1d4ed8;
+        }
+
+        .step-status {
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: #94a3b8;
+        }
+
+        .tracker-step-item.completed .step-status {
+          color: #16a34a;
+        }
+
+        .tracker-step-item.pending .step-status {
+          color: #2563eb;
+        }
+
+        .locked-cta {
+          padding: 12px 24px;
+          font-size: 13px;
+          gap: 10px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: auto;
         }
 
         @media (max-width: 1024px) {

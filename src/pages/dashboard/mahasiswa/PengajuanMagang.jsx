@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import InternshipWizard from '../../../components/InternshipWizard';
+import ProposalMagangForm from './ProposalMagangForm';
+import SuratPengantarForm from './SuratPengantarForm';
+import DosenPembimbingForm from './DosenPembimbingForm';
+import StatusKonversi from './StatusKonversi';
 import { 
   Plus, 
   Search, 
@@ -22,8 +25,28 @@ import {
   Send,
   ExternalLink,
   MessageCircle,
-  Shield
+  Shield,
+  Eye
 } from 'lucide-react';
+
+const PREDEFINED_COURSES = [
+  { id: 'IF184523', code: 'IF184523', name: 'Pengembangan Aplikasi Web Lanjut', sks: 4, cpmk: 'Mampu merancang dan mengimplementasikan arsitektur web modern yang scalable.' },
+  { id: 'IF184524', code: 'IF184524', name: 'Manajemen Proyek Perangkat Lunak', sks: 3, cpmk: 'Mampu merencanakan, mengelola, dan memantau daur hidup pengembangan software.' },
+  { id: 'IF184525', code: 'IF184525', name: 'Keamanan Sistem Informasi', sks: 3, cpmk: 'Mampu menganalisis kerentanan keamanan dan menerapkan protokol enkripsi/proteksi.' },
+  { id: 'IF184526', code: 'IF184526', name: 'Pembelajaran Mesin (Machine Learning)', sks: 4, cpmk: 'Mampu membangun, melatih, dan mengevaluasi model prediktif cerdas berbasis data.' },
+  { id: 'IF184527', code: 'IF184527', name: 'Kecerdasan Buatan (AI)', sks: 3, cpmk: 'Mampu mendesain agen cerdas menggunakan logika heuristik dan jaringan saraf.' },
+  { id: 'IF184528', code: 'IF184528', name: 'Desain UI/UX & Interaksi', sks: 3, cpmk: 'Mampu merancang wireframe dan antarmuka interaktif yang memiliki usabilitas tinggi.' },
+];
+
+const calculateGrade = (angka) => {
+  const n = parseFloat(angka);
+  if (isNaN(n) || angka === '') return '-';
+  if (n >= 81) return 'A';
+  if (n >= 61) return 'B';
+  if (n >= 41) return 'C';
+  if (n >= 21) return 'D';
+  return 'E';
+};
 
 const PengajuanMagang = ({
   currentUser,
@@ -39,9 +62,20 @@ const PengajuanMagang = ({
   idMagangValue,
   setIdMagangValue,
   idMagangData,
-  setIdMagangData
+  setIdMagangData,
+  conversionState,
+  setConversionState,
+  proposals,
+  setProposals,
+  suratPengantar,
+  setSuratPengantar,
+  dosenPembimbing,
+  setDosenPembimbing,
+  currentWizard,
+  setCurrentWizard
 }) => {
   const [isApplyingId, setIsApplyingId] = useState(idMagangStatus === 'pending');
+  const [selectedDetail, setSelectedDetail] = useState(null);
 
   useEffect(() => {
     if (idMagangStatus === 'pending') setIsApplyingId(true);
@@ -107,25 +141,87 @@ const PengajuanMagang = ({
     return (
       <div className="tab-pane fade-in">
         {isAddingNew ? (
-          <InternshipWizard 
-            currentUser={currentUser}
-            onCancel={() => setIsAddingNew(false)}
-            prefillIdMagang={idMagangValue}
-            prefillData={idMagangData}
-            onSubmit={(newData) => {
-              setInternships([{
-                id: internships.length + 1,
-                company: newData.company,
-                location: newData.location || 'Yogyakarta',
-                position: newData.position,
-                type: newData.type,
-                date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-                status: 'TERKIRIM',
-              }, ...internships]);
-              setIsAddingNew(false);
-              triggerAlert('Pengajuan Berhasil', 'Pengajuan magang baru Anda berhasil dikirim!', 'success');
-            }}
-          />
+          currentWizard === 'proposal' ? (
+            <ProposalMagangForm
+              currentUser={currentUser}
+              idMagangData={idMagangData}
+              idMagangValue={idMagangValue}
+              onCancel={() => setIsAddingNew(false)}
+              triggerAlert={triggerAlert}
+              onSubmit={(proposalData) => {
+                const newProposal = {
+                  id: proposals.length + 1,
+                  jenisPengajuan: 'Pengajuan Proposal Magang',
+                  namaProgramKegiatan: proposalData.namaProgramKegiatan,
+                  programDiikuti: proposalData.programDiikuti,
+                  namaInstansi: proposalData.namaInstansiMBKM,
+                  namaPIC: proposalData.namaPIC,
+                  tanggalMulai: proposalData.tanggalMulai,
+                  tanggalSelesai: proposalData.tanggalSelesai,
+                  tanggalPengajuan: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+                  status: 'PENDING',
+                };
+                setProposals([newProposal]); // Simpan proposal tunggal terbaru
+                setIsAddingNew(false);
+                triggerAlert('Proposal Terkirim', `Proposal magang Anda untuk ${proposalData.namaInstansiMBKM} berhasil dikirim dan sedang menunggu tinjauan!`, 'success');
+              }}
+            />
+          ) : currentWizard === 'surat_pengantar' ? (
+            <SuratPengantarForm
+              currentUser={currentUser}
+              idMagangValue={idMagangValue}
+              approvedProposal={proposals[0]}
+              onCancel={() => setIsAddingNew(false)}
+              triggerAlert={triggerAlert}
+              onSubmit={(suratData) => {
+                const newSurat = {
+                  jenisPengajuan: 'Pengajuan Surat Pengantar Magang',
+                  tanggalPengajuan: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+                  status: 'PENDING',
+                  periodeMagang: suratData.periodeMagang,
+                  tanggalMulai: suratData.tanggalMulai,
+                  tanggalSelesai: suratData.tanggalSelesai
+                };
+                setSuratPengantar(newSurat);
+                setIsAddingNew(false);
+                triggerAlert('Pengajuan Sukses', 'Formulir Pengajuan Surat Pengantar Magang berhasil dikirim dan sedang diproses!', 'success');
+              }}
+            />
+          ) : currentWizard === 'dosen_pembimbing' ? (
+            <DosenPembimbingForm
+              currentUser={currentUser}
+              idMagangValue={idMagangValue}
+              onCancel={() => setIsAddingNew(false)}
+              triggerAlert={triggerAlert}
+              onSubmit={(dopemData) => {
+                const newDopem = {
+                  jenisPengajuan: 'Pengajuan Dosen Pembimbing Magang',
+                  tanggalPengajuan: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+                  status: 'PENDING',
+                  sksDitempuh: dopemData.sksDitempuh
+                };
+                setDosenPembimbing(newDopem);
+                setIsAddingNew(false);
+                triggerAlert('Pengajuan Sukses', 'Formulir Pengajuan Dosen Pembimbing Magang berhasil dikirim dan sedang diproses!', 'success');
+              }}
+            />
+          ) : (
+            <StatusKonversi
+              currentUser={currentUser}
+              idMagangValue={idMagangValue}
+              onCancel={() => setIsAddingNew(false)}
+              onSubmit={(konversiData) => {
+                setConversionState({
+                  status: 'PENDING',
+                  tanggalPengajuan: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+                  courses: konversiData
+                });
+                setIsAddingNew(false);
+                triggerAlert('Pengajuan Sukses', 'Matriks Konversi SKS Akademik berhasil diajukan and sedang diverifikasi oleh Kaprodi!', 'success');
+              }}
+              triggerAlert={triggerAlert}
+            />
+          )
         ) : (
           <>
             <div className="page-heading-with-btn">
@@ -133,12 +229,96 @@ const PengajuanMagang = ({
                 <div className="path-breadcrumbs">
                   <span>Home</span> / <span>Dashboard</span> / <span className="active">Pengajuan Magang</span>
                 </div>
-                <h1 className="main-title">Manajemen Pengajuan Magang</h1>
+                <h1 className="main-title">Pengajuan Magang</h1>
                 <p className="main-subtitle">Pantau dan kelola seluruh proses pengajuan magang Anda mulai dari pendaftaran hingga persetujuan akhir.</p>
               </div>
-              <button className="btn-brand-primary" onClick={() => setIsAddingNew(true)}>
-                <Plus size={16} /><span>Pengajuan Baru</span>
-              </button>
+              
+              {/* Dynamic Action Button based on step progression */}
+              {!proposals[0] ? (
+                <button
+                  className="btn-brand-primary"
+                  onClick={() => {
+                    setCurrentWizard('proposal');
+                    setIsAddingNew(true);
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Step Selanjutnya</span>
+                </button>
+              ) : proposals[0].status === 'PENDING' ? (
+                <button
+                  className="btn-brand-primary"
+                  disabled
+                  style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                >
+                  <span>Menunggu ACC Proposal</span>
+                </button>
+              ) : !suratPengantar ? (
+                <button
+                  className="btn-brand-primary"
+                  onClick={() => {
+                    setCurrentWizard('surat_pengantar');
+                    setIsAddingNew(true);
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Step Selanjutnya</span>
+                </button>
+              ) : suratPengantar.status === 'PENDING' ? (
+                <button
+                  className="btn-brand-primary"
+                  disabled
+                  style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                >
+                  <span>Menunggu ACC Surat Pengantar</span>
+                </button>
+              ) : !dosenPembimbing ? (
+                <button
+                  className="btn-brand-primary"
+                  onClick={() => {
+                    setCurrentWizard('dosen_pembimbing');
+                    setIsAddingNew(true);
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Step Selanjutnya</span>
+                </button>
+              ) : dosenPembimbing.status === 'PENDING' ? (
+                <button
+                  className="btn-brand-primary"
+                  disabled
+                  style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                >
+                  <span>Menunggu ACC Dosen Pembimbing</span>
+                </button>
+              ) : conversionState.status === 'none' ? (
+                <button
+                  className="btn-brand-primary"
+                  onClick={() => {
+                    setCurrentWizard('konversi_sks');
+                    setIsAddingNew(true);
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Step Selanjutnya</span>
+                </button>
+              ) : conversionState.status === 'PENDING' ? (
+                <button
+                  className="btn-brand-primary"
+                  disabled
+                  style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                >
+                  <span>Menunggu ACC Konversi SKS</span>
+                </button>
+              ) : (
+                <button
+                  className="btn-brand-primary"
+                  disabled
+                  style={{ opacity: 0.6, cursor: 'not-allowed', background: '#16a34a' }}
+                >
+                  <span>✓ Semua Tahapan Selesai</span>
+                </button>
+              )}
             </div>
 
             {/* ID Magang Info Banner */}
@@ -157,38 +337,205 @@ const PengajuanMagang = ({
               </div>
             </div>
 
-            {/* Step 1 Table */}
-            <div className="panel-container" style={{ marginTop: '20px' }}>
-              <div className="pm-step1-table-header">
-                <div className="pm-step1-title-wrap">
-                  <div className="pm-step1-num">1</div>
+            {/* Simulation Block: Approve Proposal (Show only if there's a pending proposal) */}
+            {proposals[0] && proposals[0].status === 'PENDING' && (
+              <div style={{
+                marginTop: '16px',
+                padding: '14px 20px',
+                borderRadius: '12px',
+                background: '#fffbeb',
+                border: '1px solid #fef08a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} style={{ color: '#ca8a04' }} />
                   <div>
-                    <h3 className="pm-step1-title">Pendaftaran ID Magang</h3>
-                    <p className="pm-step1-desc">Formulir awal pendaftaran magang mahasiswa Fakultas Ilmu Komputer</p>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#854d0e' }}>Simulasi Persetujuan Proposal (Prodi)</p>
+                    <p style={{ fontSize: '11px', color: '#a16207' }}>
+                      Status proposal Anda saat ini masih PENDING. Klik tombol di kanan untuk menyetujuinya.
+                    </p>
                   </div>
                 </div>
+                <button
+                  onClick={() => {
+                    setProposals(prev => prev.map(p => p.id === proposals[0].id ? { ...p, status: 'DISETUJUI' } : p));
+                    triggerAlert('Proposal Disetujui', 'Proposal Anda telah disetujui oleh Prodi. Anda dapat melanjutkan ke langkah berikutnya!', 'success');
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#ca8a04',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(202,138,4,0.2)'
+                  }}
+                >
+                  Simulasikan ACC Proposal
+                </button>
               </div>
+            )}
+
+            {/* Simulation Block: Approve Surat Pengantar (Show only if pending) */}
+            {suratPengantar && suratPengantar.status === 'PENDING' && (
+              <div style={{
+                marginTop: '16px',
+                padding: '14px 20px',
+                borderRadius: '12px',
+                background: '#fffbeb',
+                border: '1px solid #fef08a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} style={{ color: '#ca8a04' }} />
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#854d0e' }}>Simulasi Persetujuan Surat Pengantar (Fakultas)</p>
+                    <p style={{ fontSize: '11px', color: '#a16207' }}>
+                      Status surat pengantar Anda saat ini masih PENDING. Klik tombol di kanan untuk menyetujuinya.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setSuratPengantar(prev => ({ ...prev, status: 'DISETUJUI' }));
+                    triggerAlert('Surat Pengantar Disetujui', 'Surat Pengantar Anda telah disetujui oleh Fakultas. Anda dapat mengajukan Dosen Pembimbing!', 'success');
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#ca8a04',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(202,138,4,0.2)'
+                  }}
+                >
+                  Simulasikan ACC Surat Pengantar
+                </button>
+              </div>
+            )}
+
+            {/* Simulation Block: Approve Dosen Pembimbing (Show only if pending) */}
+            {dosenPembimbing && dosenPembimbing.status === 'PENDING' && (
+              <div style={{
+                marginTop: '16px',
+                padding: '14px 20px',
+                borderRadius: '12px',
+                background: '#fffbeb',
+                border: '1px solid #fef08a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} style={{ color: '#ca8a04' }} />
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#854d0e' }}>Simulasi Persetujuan Dosen Pembimbing (Fakultas)</p>
+                    <p style={{ fontSize: '11px', color: '#a16207' }}>
+                      Status pengajuan dosen pembimbing Anda saat ini masih PENDING. Klik tombol di kanan untuk menyetujuinya.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setDosenPembimbing(prev => ({ ...prev, status: 'DISETUJUI' }));
+                    triggerAlert('Dosen Pembimbing Disetujui', 'Pengajuan Dosen Pembimbing Anda telah disetujui oleh Fakultas!', 'success');
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#ca8a04',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(202,138,4,0.2)'
+                  }}
+                >
+                  Simulasikan ACC Dosen Pembimbing
+                </button>
+              </div>
+            )}
+
+            {/* Simulation Block: Approve Konversi SKS (Show only if pending) */}
+            {conversionState.status === 'PENDING' && (
+              <div style={{
+                marginTop: '16px',
+                padding: '14px 20px',
+                borderRadius: '12px',
+                background: '#fffbeb',
+                border: '1px solid #fef08a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} style={{ color: '#ca8a04' }} />
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#854d0e' }}>Simulasi Persetujuan Konversi SKS (Kaprodi)</p>
+                    <p style={{ fontSize: '11px', color: '#a16207' }}>
+                      Matriks konversi SKS Anda saat ini masih PENDING. Klik tombol di kanan untuk menyetujuinya.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setConversionState(prev => ({ ...prev, status: 'DISETUJUI' }));
+                    triggerAlert('Konversi SKS Disetujui', 'Matriks Konversi SKS Akademik Anda telah disetujui oleh Kaprodi!', 'success');
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#ca8a04',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(202,138,4,0.2)'
+                  }}
+                >
+                  Simulasikan ACC Konversi SKS
+                </button>
+              </div>
+            )}
+
+            {/* Unified Table — ID Magang + Proposals */}
+            <div className="panel-container" style={{ marginTop: '20px' }}>
               <div className="table-responsive">
                 <table className="custom-data-table font-medium-cells">
                   <thead>
                     <tr>
                       <th>JENIS PENGAJUAN</th>
-                      <th>NAMA INSTANSI</th>
                       <th>TANGGAL PENGAJUAN</th>
                       <th>STATUS</th>
-                      <th style={{ textAlign: 'center' }}>AKSI</th>
+                      <th style={{ width: '80px', textAlign: 'center' }}>AKSI</th>
                     </tr>
                   </thead>
                   <tbody>
+                    {/* Row 1: ID Magang */}
                     {idMagangData ? (
                       <tr>
                         <td>
                           <div className="cell-primary font-bold">{idMagangData.jenisPengajuan}</div>
                           <span className="cell-secondary">Semester {idMagangData.semester} · {idMagangData.tahunAkademik}</span>
-                        </td>
-                        <td>
-                          <div className="cell-primary">{idMagangData.namaInstansi}</div>
-                          <span className="cell-secondary">Kepada: {idMagangData.kepadaYth}</span>
                         </td>
                         <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
                           {idMagangData.tanggalPengajuan || '-'}
@@ -200,15 +547,171 @@ const PengajuanMagang = ({
                           </span>
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <button className="table-action-icon" onClick={() => triggerAlert('Detail Pendaftaran', `ID Magang: ${idMagangValue} | Instansi: ${idMagangData.namaInstansi} | Status: Disetujui Fakultas`, 'info')}>
-                            <ChevronRight size={18} />
+                          <button
+                            onClick={() => setSelectedDetail({ type: 'id_magang', data: idMagangData })}
+                            style={{ background: 'none', border: 'none', color: '#B432F2', cursor: 'pointer', padding: '6px' }}
+                            title="Lihat Detail"
+                          >
+                            <Eye size={16} />
                           </button>
                         </td>
                       </tr>
                     ) : (
                       <tr>
-                        <td colSpan="5" style={{ textAlign:'center', color:'var(--text-muted)', padding:'32px', fontSize:'13px' }}>
+                        <td colSpan="4" style={{ textAlign:'center', color:'var(--text-muted)', padding:'32px', fontSize:'13px' }}>
                           Data pendaftaran tidak ditemukan.
+                        </td>
+                      </tr>
+                    )}
+                    {/* Rows: Proposals */}
+                    {proposals.map((p) => (
+                      <tr key={`proposal-${p.id}`}>
+                        <td>
+                          <div className="cell-primary font-bold">{p.jenisPengajuan}</div>
+                          <span className="cell-secondary">{p.programDiikuti} ({p.namaProgramKegiatan}) · PIC: {p.namaPIC}</span>
+                        </td>
+                        <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
+                          {p.tanggalPengajuan}
+                        </td>
+                        <td>
+                          <span style={{
+                            display:'inline-flex',
+                            alignItems:'center',
+                            gap:'6px',
+                            padding:'6px 14px',
+                            borderRadius:'99px',
+                            fontSize:'12px',
+                            fontWeight:'700',
+                            backgroundColor: p.status === 'DISETUJUI' ? '#f0fdf4' : '#fefce8',
+                            color: p.status === 'DISETUJUI' ? '#16a34a' : '#a16207',
+                            border: p.status === 'DISETUJUI' ? '1px solid #bbf7d0' : '1px solid #fde68a'
+                          }}>
+                            <span className="status-dot-indicator" style={{ backgroundColor: p.status === 'DISETUJUI' ? '#16a34a' : '#ca8a04' }}></span>
+                            {p.status}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            onClick={() => setSelectedDetail({ type: 'proposal', data: p })}
+                            style={{ background: 'none', border: 'none', color: '#B432F2', cursor: 'pointer', padding: '6px' }}
+                            title="Lihat Detail"
+                          >
+                            <Eye size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {/* Row 3: Surat Pengantar Magang */}
+                    {suratPengantar && (
+                      <tr>
+                        <td>
+                          <div className="cell-primary font-bold">{suratPengantar.jenisPengajuan}</div>
+                          <span className="cell-secondary">Durasi/Periode: {suratPengantar.periodeMagang}</span>
+                        </td>
+                        <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
+                          {suratPengantar.tanggalPengajuan}
+                        </td>
+                        <td>
+                          <span style={{
+                            display:'inline-flex',
+                            alignItems:'center',
+                            gap:'6px',
+                            padding:'6px 14px',
+                            borderRadius:'99px',
+                            fontSize:'12px',
+                            fontWeight:'700',
+                            backgroundColor: suratPengantar.status === 'DISETUJUI' ? '#f0fdf4' : '#fefce8',
+                            color: suratPengantar.status === 'DISETUJUI' ? '#16a34a' : '#a16207',
+                            border: suratPengantar.status === 'DISETUJUI' ? '1px solid #bbf7d0' : '1px solid #fde68a'
+                          }}>
+                            <span className="status-dot-indicator" style={{ backgroundColor: suratPengantar.status === 'DISETUJUI' ? '#16a34a' : '#ca8a04' }}></span>
+                            {suratPengantar.status}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            onClick={() => setSelectedDetail({ type: 'surat_pengantar', data: suratPengantar })}
+                            style={{ background: 'none', border: 'none', color: '#B432F2', cursor: 'pointer', padding: '6px' }}
+                            title="Lihat Detail"
+                          >
+                            <Eye size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                    {/* Row 4: Dosen Pembimbing Magang */}
+                    {dosenPembimbing && (
+                      <tr>
+                        <td>
+                          <div className="cell-primary font-bold">{dosenPembimbing.jenisPengajuan}</div>
+                          <span className="cell-secondary">SKS Ditempuh: {dosenPembimbing.sksDitempuh} SKS</span>
+                        </td>
+                        <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
+                          {dosenPembimbing.tanggalPengajuan}
+                        </td>
+                        <td>
+                          <span style={{
+                            display:'inline-flex',
+                            alignItems:'center',
+                            gap:'6px',
+                            padding:'6px 14px',
+                            borderRadius:'99px',
+                            fontSize:'12px',
+                            fontWeight:'700',
+                            backgroundColor: dosenPembimbing.status === 'DISETUJUI' ? '#f0fdf4' : '#fefce8',
+                            color: dosenPembimbing.status === 'DISETUJUI' ? '#16a34a' : '#a16207',
+                            border: dosenPembimbing.status === 'DISETUJUI' ? '1px solid #bbf7d0' : '1px solid #fde68a'
+                          }}>
+                            <span className="status-dot-indicator" style={{ backgroundColor: dosenPembimbing.status === 'DISETUJUI' ? '#16a34a' : '#ca8a04' }}></span>
+                            {dosenPembimbing.status}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            onClick={() => setSelectedDetail({ type: 'dosen_pembimbing', data: dosenPembimbing })}
+                            style={{ background: 'none', border: 'none', color: '#B432F2', cursor: 'pointer', padding: '6px' }}
+                            title="Lihat Detail"
+                          >
+                            <Eye size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                    {/* Row 5: Konversi SKS Akademik */}
+                    {conversionState.status !== 'none' && (
+                      <tr>
+                        <td>
+                          <div className="cell-primary font-bold">Konversi SKS Akademik</div>
+                          <span className="cell-secondary">Matriks Capaian Pembelajaran & Penilaian Akademik</span>
+                        </td>
+                        <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
+                          {conversionState.tanggalPengajuan}
+                        </td>
+                        <td>
+                          <span style={{
+                            display:'inline-flex',
+                            alignItems:'center',
+                            gap:'6px',
+                            padding:'6px 14px',
+                            borderRadius:'99px',
+                            fontSize:'12px',
+                            fontWeight:'700',
+                            backgroundColor: conversionState.status === 'DISETUJUI' ? '#f0fdf4' : '#fefce8',
+                            color: conversionState.status === 'DISETUJUI' ? '#16a34a' : '#a16207',
+                            border: conversionState.status === 'DISETUJUI' ? '1px solid #bbf7d0' : '1px solid #fde68a'
+                          }}>
+                            <span className="status-dot-indicator" style={{ backgroundColor: conversionState.status === 'DISETUJUI' ? '#16a34a' : '#ca8a04' }}></span>
+                            {conversionState.status}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            onClick={() => setSelectedDetail({ type: 'konversi_sks', data: conversionState })}
+                            style={{ background: 'none', border: 'none', color: '#B432F2', cursor: 'pointer', padding: '6px' }}
+                            title="Lihat Detail"
+                          >
+                            <Eye size={16} />
+                          </button>
                         </td>
                       </tr>
                     )}
@@ -216,7 +719,7 @@ const PengajuanMagang = ({
                 </table>
               </div>
               <div className="table-pagination">
-                <span className="pagination-info">Menampilkan 1 data pendaftaran awal</span>
+                <span className="pagination-info">Menampilkan {1 + proposals.length + (suratPengantar ? 1 : 0) + (dosenPembimbing ? 1 : 0) + (conversionState.status !== 'none' ? 1 : 0)} data pengajuan</span>
                 <div className="pagination-pages">
                   <button className="pag-btn">&larr;</button>
                   <button className="pag-btn active">1</button>
@@ -225,7 +728,356 @@ const PengajuanMagang = ({
               </div>
             </div>
 
+            {/* Detail Overlay Modal */}
+            {selectedDetail && (
+              <div className="detail-modal-overlay" onClick={() => setSelectedDetail(null)}>
+                <div className="detail-modal-card" onClick={(e) => e.stopPropagation()}>
+                  <div className="detail-modal-header">
+                    <h3 className="detail-modal-title">
+                      <BookOpen size={20} style={{ color: '#B432F2' }} />
+                      <span>Detail {selectedDetail.type === 'id_magang' ? 'Pendaftaran ID Magang' : selectedDetail.type === 'proposal' ? 'Pengajuan Proposal Magang' : selectedDetail.type === 'surat_pengantar' ? 'Pengajuan Surat Pengantar Magang' : selectedDetail.type === 'dosen_pembimbing' ? 'Pengajuan Dosen Pembimbing Magang' : 'Konversi SKS Akademik'}</span>
+                    </h3>
+                    <button className="detail-modal-close" onClick={() => setSelectedDetail(null)}>&times;</button>
+                  </div>
+                  
+                  <div className="detail-modal-body">
+                    {selectedDetail.type === 'id_magang' && (
+                      <div className="detail-modal-grid">
+                        <div className="detail-item">
+                          <span className="detail-label">Jenis Pengajuan</span>
+                          <span className="detail-value">{selectedDetail.data.jenisPengajuan}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Semester & Tahun Akademik</span>
+                          <span className="detail-value">Semester {selectedDetail.data.semester} · {selectedDetail.data.tahunAkademik}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Nama Mahasiswa</span>
+                          <span className="detail-value">{currentUser?.name || 'Mahasiswa'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">NIM</span>
+                          <span className="detail-value">{currentUser?.identity || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Program Studi</span>
+                          <span className="detail-value">Informatika</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Tanggal Pengajuan</span>
+                          <span className="detail-value">{selectedDetail.data.tanggalPengajuan || '-'}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedDetail.type === 'proposal' && (
+                      <div className="detail-modal-grid">
+                        <div className="detail-item">
+                          <span className="detail-label">Nama Program Kegiatan</span>
+                          <span className="detail-value">{selectedDetail.data.namaProgramKegiatan || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Program Diikuti</span>
+                          <span className="detail-value">{selectedDetail.data.programDiikuti || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Nama Instansi MBKM</span>
+                          <span className="detail-value">{selectedDetail.data.namaInstansi || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Nama PIC Mitra</span>
+                          <span className="detail-value">{selectedDetail.data.namaPIC || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Tanggal Mulai Magang</span>
+                          <span className="detail-value">{selectedDetail.data.tanggalMulai || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Tanggal Berakhir Magang</span>
+                          <span className="detail-value">{selectedDetail.data.tanggalSelesai || '-'}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedDetail.type === 'surat_pengantar' && (
+                      <div className="detail-modal-grid">
+                        <div className="detail-item">
+                          <span className="detail-label">Email Mahasiswa</span>
+                          <span className="detail-value">{currentUser?.email}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">ID Magang</span>
+                          <span className="detail-value">{idMagangValue}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Tanggal Mulai Magang</span>
+                          <span className="detail-value">{selectedDetail.data.tanggalMulai || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Tanggal Berakhir Magang</span>
+                          <span className="detail-value">{selectedDetail.data.tanggalSelesai || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Periode Magang</span>
+                          <span className="detail-value">{selectedDetail.data.periodeMagang || '-'}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedDetail.type === 'dosen_pembimbing' && (
+                      <div className="detail-modal-grid">
+                        <div className="detail-item">
+                          <span className="detail-label">Email Mahasiswa</span>
+                          <span className="detail-value">{currentUser?.email}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">ID Magang</span>
+                          <span className="detail-value">{idMagangValue}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Nama Mahasiswa</span>
+                          <span className="detail-value">{currentUser?.name}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">NIM Mahasiswa</span>
+                          <span className="detail-value">{currentUser?.identity}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">SKS Ditempuh</span>
+                          <span className="detail-value">{selectedDetail.data.sksDitempuh} SKS</span>
+                        </div>
+                        <div className="detail-item" style={{ gridColumn: 'span 2' }}>
+                          <span className="detail-label">Dokumen Terlampir</span>
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                            <span className="detail-file-chip">Bukti_Diterima_Magang.pdf</span>
+                            <span className="detail-file-chip">KHS_Terakhir.pdf</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedDetail.type === 'konversi_sks' && (
+                      <div>
+                        <div style={{ marginBottom: '14px', fontSize: '13px', color: '#64748b' }}>
+                          Berikut rincian mata kuliah konversi yang Anda ajukan:
+                        </div>
+                        <div className="detail-modal-table-wrap">
+                          <table className="detail-modal-table">
+                            <thead>
+                              <tr>
+                                <th>KODE</th>
+                                <th>MATA KULIAH</th>
+                                <th>SKS</th>
+                                <th>OBJECTIVE</th>
+                                <th>NILAI</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedDetail.data.courses && selectedDetail.data.courses.length > 0 ? (
+                                selectedDetail.data.courses.map((courseItem, cIdx) => {
+                                  const match = PREDEFINED_COURSES.find(c => c.id === courseItem.selectedCourseId);
+                                  return (
+                                    <tr key={cIdx}>
+                                      <td><strong style={{ fontFamily: 'Outfit, monospace' }}>{match ? match.code : '-'}</strong></td>
+                                      <td>
+                                        <div>{match ? match.name : '-'}</div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>CPMK: {match ? match.cpmk : '-'}</div>
+                                      </td>
+                                      <td>{match ? match.sks : '-'} SKS</td>
+                                      <td>{courseItem.objective}</td>
+                                      <td>
+                                        <span className="detail-grade">
+                                          {courseItem.nilaiAngka ? `${courseItem.nilaiAngka} (${calculateGrade(courseItem.nilaiAngka)})` : '-'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              ) : (
+                                <tr>
+                                  <td colSpan="5" style={{ textAlign: 'center', color: '#94a3b8' }}>Tidak ada mata kuliah konversi yang disimpan.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="detail-modal-footer">
+                    <button className="detail-modal-close-btn" onClick={() => setSelectedDetail(null)}>Tutup Rincian</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <style>{`
+              /* Detail Modal Overlay */
+              .detail-modal-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(15, 23, 42, 0.4);
+                backdrop-filter: blur(6px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+                padding: 20px;
+              }
+              
+              /* Modal Card */
+              .detail-modal-card {
+                background: #fff;
+                border-radius: 20px;
+                width: 100%;
+                max-width: 650px;
+                box-shadow: 0 20px 50px rgba(180, 50, 242, 0.08);
+                display: flex;
+                flex-direction: column;
+                max-height: 90vh;
+                border: 1px solid #f1eef8;
+                overflow: hidden;
+                animation: modalEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+              }
+              
+              @keyframes modalEnter {
+                from { opacity: 0; transform: translateY(12px) scale(0.98); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+              }
+
+              .detail-modal-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 20px 24px;
+                border-bottom: 1.5px solid #f1f5f9;
+              }
+              .detail-modal-title {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 15px;
+                font-weight: 800;
+                color: #1e293b;
+                margin: 0;
+              }
+              .detail-modal-close {
+                background: none;
+                border: none;
+                font-size: 24px;
+                color: #94a3b8;
+                cursor: pointer;
+                line-height: 1;
+              }
+              .detail-modal-close:hover {
+                color: #ef4444;
+              }
+
+              .detail-modal-body {
+                padding: 24px;
+                overflow-y: auto;
+                flex: 1;
+              }
+
+              .detail-modal-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+              }
+
+              .detail-item {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                padding: 10px 14px;
+                background: #f8fafc;
+                border-radius: 10px;
+                border-left: 3.5px solid #a855f7;
+              }
+              .detail-label {
+                font-size: 10px;
+                color: #94a3b8;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              }
+              .detail-value {
+                font-size: 13px;
+                color: #1e293b;
+                font-weight: 700;
+              }
+
+              .detail-file-chip {
+                display: inline-flex;
+                align-items: center;
+                padding: 4px 10px;
+                border-radius: 6px;
+                background: #f1f5f9;
+                border: 1px solid #e2e8f0;
+                font-size: 11px;
+                font-weight: 700;
+                color: #475569;
+              }
+
+              .detail-modal-table-wrap {
+                border: 1.5px solid #e2e8f0;
+                border-radius: 12px;
+                overflow: hidden;
+                margin-top: 10px;
+              }
+              .detail-modal-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+                text-align: left;
+              }
+              .detail-modal-table th {
+                background: #f8fafc;
+                padding: 10px 12px;
+                color: #64748b;
+                font-weight: 700;
+                border-bottom: 1.5px solid #e2e8f0;
+              }
+              .detail-modal-table td {
+                padding: 12px;
+                border-bottom: 1px solid #f1f5f9;
+                color: #334155;
+                vertical-align: top;
+              }
+              .detail-grade {
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 6px;
+                background: #eff6ff;
+                color: #1d4ed8;
+                font-weight: 800;
+                font-size: 11px;
+              }
+
+              .detail-modal-footer {
+                display: flex;
+                justify-content: flex-end;
+                padding: 16px 24px;
+                border-top: 1.5px solid #f1f5f9;
+                background: #f8fafc;
+              }
+              .detail-modal-close-btn {
+                padding: 8px 16px;
+                border-radius: 8px;
+                border: 1.5px solid #cbd5e1;
+                background: #fff;
+                color: #475569;
+                font-size: 12px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+              }
+              .detail-modal-close-btn:hover {
+                background: #f1f5f9;
+                border-color: #94a3b8;
+              }
+
               .pm-id-info-banner {
                 display: flex;
                 align-items: center;
@@ -433,7 +1285,7 @@ const PengajuanMagang = ({
                 <label className="pm-label"><BookOpen size={13} /> Program Studi</label>
                 <div className="pm-readonly-badge-row">
                   <input type="text" className="pm-input pm-input-readonly" value={formInit.prodi} readOnly disabled />
-                  <span className="pm-auto-badge">Otomatis</span>
+                  
                 </div>
               </div>
             </div>
