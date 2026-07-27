@@ -3,11 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import MahasiswaDashboard from './pages/dashboard/mahasiswa/MahasiswaDashboard';
-import DosenDashboard from './pages/dashboard/DosenDashboard';
-import MitraDashboard from './pages/dashboard/MitraDashboard';
-import KaprodiDashboard from './pages/dashboard/KaprodiDashboard';
-import './App.css';
+import MahasiswaDashboard from "./pages/dashboard/mahasiswa/MahasiswaDashboard";
+import DosenDashboard from "./pages/dashboard/DosenDashboard";
+import MitraDashboard from "./pages/dashboard/Mitra/MitraDashboard";
+import KaprodiDashboard from "./pages/dashboard/KaprodiDashboard";
+
+import "./App.css";
 
 // Proteksi Rute (Harus Login dan Peran Sesuai)
 const ProtectedRoute = ({ children, allowedRole }) => {
