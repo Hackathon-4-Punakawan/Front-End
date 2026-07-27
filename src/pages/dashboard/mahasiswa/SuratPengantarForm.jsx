@@ -72,9 +72,6 @@ const SuratPengantarForm = ({ currentUser, idMagangValue, approvedProposal, onCa
         <div className="psf-hero-deco psf-hero-deco-1" />
         <div className="psf-hero-deco psf-hero-deco-2" />
         <div className="psf-hero-content">
-          <div className="psf-step-badge">
-            <span>STEP</span><span className="psf-step-num">3</span>
-          </div>
           <div>
             <p className="psf-hero-sub">Fakultas Ilmu Komputer</p>
             <h1 className="psf-hero-title">Pengajuan Surat Pengantar Magang</h1>

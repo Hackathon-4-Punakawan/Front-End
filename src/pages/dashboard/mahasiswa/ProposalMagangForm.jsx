@@ -139,9 +139,6 @@ const ProposalMagangForm = ({ currentUser, idMagangData, idMagangValue, onCancel
         <div className="pmf-hero-deco pmf-hero-deco-1" />
         <div className="pmf-hero-deco pmf-hero-deco-2" />
         <div className="pmf-hero-content">
-          <div className="pmf-step-badge">
-            <span>STEP</span><span className="pmf-step-num">2</span>
-          </div>
           <div>
             <p className="pmf-hero-sub">Fakultas Ilmu Komputer · {idMagangData?.namaInstansi || 'Instansi Magang'}</p>
             <h1 className="pmf-hero-title">Mengajukan Proposal Magang</h1>

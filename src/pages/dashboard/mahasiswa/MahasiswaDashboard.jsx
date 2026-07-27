@@ -25,7 +25,8 @@ import {
   Upload,
   Eye,
   FileText,
-  ChevronLeft
+  ChevronLeft,
+  User
 } from 'lucide-react';
 
 const MahasiswaDashboard = () => {
@@ -247,13 +248,15 @@ const MahasiswaDashboard = () => {
               </button>
             </div>
             
+            <div className="header-divider"></div>
+            
             <div className="profile-badge">
               <div className="profile-info">
                 <span className="profile-name">{currentUser?.name || 'Andi Pratama'}</span>
-                <span className="profile-role">24.11.5956</span>
+                <span className="profile-role">Mahasiswa Informatika</span>
               </div>
               <div className="profile-avatar">
-                {currentUser?.name ? currentUser.name.charAt(0) : 'A'}
+                <User size={18} />
               </div>
             </div>
           </div>
@@ -807,46 +810,52 @@ const MahasiswaDashboard = () => {
           border: 2px solid #ffffff;
         }
 
+        .header-divider {
+          width: 1px;
+          height: 28px;
+          background-color: #e2e8f0;
+          margin: 0 4px;
+        }
+
         .profile-badge {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 4px 12px;
-          background-color: #fdfaff;
-          border: 1px solid #f1e9f7;
-          border-radius: 12px;
+          gap: 12px;
+          padding: 4px 0;
+          background-color: transparent;
+          border: none;
         }
 
         .profile-info {
           text-align: right;
           display: flex;
           flex-direction: column;
+          line-height: 1.3;
         }
 
         .profile-name {
-          font-size: 13px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 14px;
           font-weight: 700;
-          color: #0f172a;
+          color: #1e293b;
         }
 
         .profile-role {
           font-size: 11px;
-          font-weight: 600;
-          color: #94a3b8;
+          font-weight: 500;
+          color: #64748b;
         }
 
         .profile-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          background-color: #B432F2;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #a855f7, #9333ea);
           color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
-          font-weight: 700;
-          font-family: 'Outfit', sans-serif;
+          box-shadow: 0 3px 8px rgba(147, 51, 234, 0.2);
         }
 
         /* VIEWPORT CONTENT & MAIN GRID */

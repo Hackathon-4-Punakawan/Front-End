@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ProposalMagangForm from './ProposalMagangForm';
 import SuratPengantarForm from './SuratPengantarForm';
+import DosenPembimbingForm from './DosenPembimbingForm';
 import { 
   Plus, 
   Search, 
@@ -45,7 +46,8 @@ const PengajuanMagang = ({
   const [isApplyingId, setIsApplyingId] = useState(idMagangStatus === 'pending');
   const [proposals, setProposals] = useState([]);
   const [suratPengantar, setSuratPengantar] = useState(null);
-  const [currentWizard, setCurrentWizard] = useState(null); // 'proposal' | 'surat_pengantar'
+  const [dosenPembimbing, setDosenPembimbing] = useState(null);
+  const [currentWizard, setCurrentWizard] = useState(null); // 'proposal' | 'surat_pengantar' | 'dosen_pembimbing'
 
   useEffect(() => {
     if (idMagangStatus === 'pending') setIsApplyingId(true);
@@ -135,7 +137,7 @@ const PengajuanMagang = ({
                 triggerAlert('Proposal Terkirim', `Proposal magang Anda untuk ${proposalData.namaInstansiMBKM} berhasil dikirim dan sedang menunggu tinjauan!`, 'success');
               }}
             />
-          ) : (
+          ) : currentWizard === 'surat_pengantar' ? (
             <SuratPengantarForm
               currentUser={currentUser}
               idMagangValue={idMagangValue}
@@ -148,10 +150,30 @@ const PengajuanMagang = ({
                   tanggalPengajuan: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
                   status: 'PENDING',
                   periodeMagang: suratData.periodeMagang,
+                  tanggalMulai: suratData.tanggalMulai,
+                  tanggalSelesai: suratData.tanggalSelesai
                 };
                 setSuratPengantar(newSurat);
                 setIsAddingNew(false);
                 triggerAlert('Pengajuan Sukses', 'Formulir Pengajuan Surat Pengantar Magang berhasil dikirim dan sedang diproses!', 'success');
+              }}
+            />
+          ) : (
+            <DosenPembimbingForm
+              currentUser={currentUser}
+              idMagangValue={idMagangValue}
+              onCancel={() => setIsAddingNew(false)}
+              triggerAlert={triggerAlert}
+              onSubmit={(dopemData) => {
+                const newDopem = {
+                  jenisPengajuan: 'Pengajuan Dosen Pembimbing Magang',
+                  tanggalPengajuan: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+                  status: 'PENDING',
+                  sksDitempuh: dopemData.sksDitempuh
+                };
+                setDosenPembimbing(newDopem);
+                setIsAddingNew(false);
+                triggerAlert('Pengajuan Sukses', 'Formulir Pengajuan Dosen Pembimbing Magang berhasil dikirim dan sedang diproses!', 'success');
               }}
             />
           )
@@ -196,6 +218,33 @@ const PengajuanMagang = ({
                 >
                   <Plus size={16} />
                   <span>Step Selanjutnya</span>
+                </button>
+              ) : suratPengantar.status === 'PENDING' ? (
+                <button
+                  className="btn-brand-primary"
+                  disabled
+                  style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                >
+                  <span>Menunggu ACC Surat Pengantar</span>
+                </button>
+              ) : !dosenPembimbing ? (
+                <button
+                  className="btn-brand-primary"
+                  onClick={() => {
+                    setCurrentWizard('dosen_pembimbing');
+                    setIsAddingNew(true);
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Step Selanjutnya</span>
+                </button>
+              ) : dosenPembimbing.status === 'PENDING' ? (
+                <button
+                  className="btn-brand-primary"
+                  disabled
+                  style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                >
+                  <span>Menunggu ACC Dosen Pembimbing</span>
                 </button>
               ) : (
                 <button
@@ -265,6 +314,96 @@ const PengajuanMagang = ({
                   }}
                 >
                   Simulasikan ACC Proposal
+                </button>
+              </div>
+            )}
+
+            {/* Simulation Block: Approve Surat Pengantar (Show only if pending) */}
+            {suratPengantar && suratPengantar.status === 'PENDING' && (
+              <div style={{
+                marginTop: '16px',
+                padding: '14px 20px',
+                borderRadius: '12px',
+                background: '#fffbeb',
+                border: '1px solid #fef08a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} style={{ color: '#ca8a04' }} />
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#854d0e' }}>Simulasi Persetujuan Surat Pengantar (Fakultas)</p>
+                    <p style={{ fontSize: '11px', color: '#a16207' }}>
+                      Status surat pengantar Anda saat ini masih PENDING. Klik tombol di kanan untuk menyetujuinya.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setSuratPengantar(prev => ({ ...prev, status: 'DISETUJUI' }));
+                    triggerAlert('Surat Pengantar Disetujui', 'Surat Pengantar Anda telah disetujui oleh Fakultas. Anda dapat mengajukan Dosen Pembimbing!', 'success');
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#ca8a04',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(202,138,4,0.2)'
+                  }}
+                >
+                  Simulasikan ACC Surat Pengantar
+                </button>
+              </div>
+            )}
+
+            {/* Simulation Block: Approve Dosen Pembimbing (Show only if pending) */}
+            {dosenPembimbing && dosenPembimbing.status === 'PENDING' && (
+              <div style={{
+                marginTop: '16px',
+                padding: '14px 20px',
+                borderRadius: '12px',
+                background: '#fffbeb',
+                border: '1px solid #fef08a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} style={{ color: '#ca8a04' }} />
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#854d0e' }}>Simulasi Persetujuan Dosen Pembimbing (Fakultas)</p>
+                    <p style={{ fontSize: '11px', color: '#a16207' }}>
+                      Status pengajuan dosen pembimbing Anda saat ini masih PENDING. Klik tombol di kanan untuk menyetujuinya.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setDosenPembimbing(prev => ({ ...prev, status: 'DISETUJUI' }));
+                    triggerAlert('Dosen Pembimbing Disetujui', 'Pengajuan Dosen Pembimbing Anda telah disetujui oleh Fakultas!', 'success');
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#ca8a04',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(202,138,4,0.2)'
+                  }}
+                >
+                  Simulasikan ACC Dosen Pembimbing
                 </button>
               </div>
             )}
@@ -345,9 +484,49 @@ const PengajuanMagang = ({
                           {suratPengantar.tanggalPengajuan}
                         </td>
                         <td>
-                          <span style={{ display:'inline-flex', alignItems:'center', gap:'6px', padding:'6px 14px', borderRadius:'99px', fontSize:'12px', fontWeight:'700', backgroundColor:'#fefce8', color:'#a16207', border:'1px solid #fde68a' }}>
-                            <span className="status-dot-indicator" style={{ backgroundColor:'#ca8a04' }}></span>
+                          <span style={{
+                            display:'inline-flex',
+                            alignItems:'center',
+                            gap:'6px',
+                            padding:'6px 14px',
+                            borderRadius:'99px',
+                            fontSize:'12px',
+                            fontWeight:'700',
+                            backgroundColor: suratPengantar.status === 'DISETUJUI' ? '#f0fdf4' : '#fefce8',
+                            color: suratPengantar.status === 'DISETUJUI' ? '#16a34a' : '#a16207',
+                            border: suratPengantar.status === 'DISETUJUI' ? '1px solid #bbf7d0' : '1px solid #fde68a'
+                          }}>
+                            <span className="status-dot-indicator" style={{ backgroundColor: suratPengantar.status === 'DISETUJUI' ? '#16a34a' : '#ca8a04' }}></span>
                             {suratPengantar.status}
+                          </span>
+                        </td>
+                      </tr>
+                    )}
+                    {/* Row 4: Dosen Pembimbing Magang */}
+                    {dosenPembimbing && (
+                      <tr>
+                        <td>
+                          <div className="cell-primary font-bold">{dosenPembimbing.jenisPengajuan}</div>
+                          <span className="cell-secondary">SKS Ditempuh: {dosenPembimbing.sksDitempuh} SKS</span>
+                        </td>
+                        <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
+                          {dosenPembimbing.tanggalPengajuan}
+                        </td>
+                        <td>
+                          <span style={{
+                            display:'inline-flex',
+                            alignItems:'center',
+                            gap:'6px',
+                            padding:'6px 14px',
+                            borderRadius:'99px',
+                            fontSize:'12px',
+                            fontWeight:'700',
+                            backgroundColor: dosenPembimbing.status === 'DISETUJUI' ? '#f0fdf4' : '#fefce8',
+                            color: dosenPembimbing.status === 'DISETUJUI' ? '#16a34a' : '#a16207',
+                            border: dosenPembimbing.status === 'DISETUJUI' ? '1px solid #bbf7d0' : '1px solid #fde68a'
+                          }}>
+                            <span className="status-dot-indicator" style={{ backgroundColor: dosenPembimbing.status === 'DISETUJUI' ? '#16a34a' : '#ca8a04' }}></span>
+                            {dosenPembimbing.status}
                           </span>
                         </td>
                       </tr>
@@ -356,7 +535,7 @@ const PengajuanMagang = ({
                 </table>
               </div>
               <div className="table-pagination">
-                <span className="pagination-info">Menampilkan {1 + proposals.length + (suratPengantar ? 1 : 0)} data pengajuan</span>
+                <span className="pagination-info">Menampilkan {1 + proposals.length + (suratPengantar ? 1 : 0) + (dosenPembimbing ? 1 : 0)} data pengajuan</span>
                 <div className="pagination-pages">
                   <button className="pag-btn">&larr;</button>
                   <button className="pag-btn active">1</button>
@@ -575,7 +754,7 @@ const PengajuanMagang = ({
                 <label className="pm-label"><BookOpen size={13} /> Program Studi</label>
                 <div className="pm-readonly-badge-row">
                   <input type="text" className="pm-input pm-input-readonly" value={formInit.prodi} readOnly disabled />
-                  <span className="pm-auto-badge">Otomatis</span>
+                  
                 </div>
               </div>
             </div>
