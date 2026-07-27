@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import InternshipWizard from '../../../components/InternshipWizard';
+import ProposalMagangForm from './ProposalMagangForm';
+import SuratPengantarForm from './SuratPengantarForm';
 import { 
   Plus, 
   Search, 
@@ -42,6 +43,9 @@ const PengajuanMagang = ({
   setIdMagangData
 }) => {
   const [isApplyingId, setIsApplyingId] = useState(idMagangStatus === 'pending');
+  const [proposals, setProposals] = useState([]);
+  const [suratPengantar, setSuratPengantar] = useState(null);
+  const [currentWizard, setCurrentWizard] = useState(null); // 'proposal' | 'surat_pengantar'
 
   useEffect(() => {
     if (idMagangStatus === 'pending') setIsApplyingId(true);
@@ -107,25 +111,50 @@ const PengajuanMagang = ({
     return (
       <div className="tab-pane fade-in">
         {isAddingNew ? (
-          <InternshipWizard 
-            currentUser={currentUser}
-            onCancel={() => setIsAddingNew(false)}
-            prefillIdMagang={idMagangValue}
-            prefillData={idMagangData}
-            onSubmit={(newData) => {
-              setInternships([{
-                id: internships.length + 1,
-                company: newData.company,
-                location: newData.location || 'Yogyakarta',
-                position: newData.position,
-                type: newData.type,
-                date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-                status: 'TERKIRIM',
-              }, ...internships]);
-              setIsAddingNew(false);
-              triggerAlert('Pengajuan Berhasil', 'Pengajuan magang baru Anda berhasil dikirim!', 'success');
-            }}
-          />
+          currentWizard === 'proposal' ? (
+            <ProposalMagangForm
+              currentUser={currentUser}
+              idMagangData={idMagangData}
+              idMagangValue={idMagangValue}
+              onCancel={() => setIsAddingNew(false)}
+              triggerAlert={triggerAlert}
+              onSubmit={(proposalData) => {
+                const newProposal = {
+                  id: proposals.length + 1,
+                  jenisPengajuan: proposalData.namaProgramKegiatan,
+                  programDiikuti: proposalData.programDiikuti,
+                  namaInstansi: proposalData.namaInstansiMBKM,
+                  namaPIC: proposalData.namaPIC,
+                  tanggalMulai: proposalData.tanggalMulai,
+                  tanggalSelesai: proposalData.tanggalSelesai,
+                  tanggalPengajuan: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+                  status: 'PENDING',
+                };
+                setProposals([newProposal]); // Simpan proposal tunggal terbaru
+                setIsAddingNew(false);
+                triggerAlert('Proposal Terkirim', `Proposal magang Anda untuk ${proposalData.namaInstansiMBKM} berhasil dikirim dan sedang menunggu tinjauan!`, 'success');
+              }}
+            />
+          ) : (
+            <SuratPengantarForm
+              currentUser={currentUser}
+              idMagangValue={idMagangValue}
+              approvedProposal={proposals[0]}
+              onCancel={() => setIsAddingNew(false)}
+              triggerAlert={triggerAlert}
+              onSubmit={(suratData) => {
+                const newSurat = {
+                  jenisPengajuan: 'Pengajuan Surat Pengantar Magang',
+                  tanggalPengajuan: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+                  status: 'PENDING',
+                  periodeMagang: suratData.periodeMagang,
+                };
+                setSuratPengantar(newSurat);
+                setIsAddingNew(false);
+                triggerAlert('Pengajuan Sukses', 'Formulir Pengajuan Surat Pengantar Magang berhasil dikirim dan sedang diproses!', 'success');
+              }}
+            />
+          )
         ) : (
           <>
             <div className="page-heading-with-btn">
@@ -133,12 +162,50 @@ const PengajuanMagang = ({
                 <div className="path-breadcrumbs">
                   <span>Home</span> / <span>Dashboard</span> / <span className="active">Pengajuan Magang</span>
                 </div>
-                <h1 className="main-title">Manajemen Pengajuan Magang</h1>
+                <h1 className="main-title">Pengajuan Magang</h1>
                 <p className="main-subtitle">Pantau dan kelola seluruh proses pengajuan magang Anda mulai dari pendaftaran hingga persetujuan akhir.</p>
               </div>
-              <button className="btn-brand-primary" onClick={() => setIsAddingNew(true)}>
-                <Plus size={16} /><span>Pengajuan Baru</span>
-              </button>
+              
+              {/* Dynamic Action Button based on step progression */}
+              {!proposals[0] ? (
+                <button
+                  className="btn-brand-primary"
+                  onClick={() => {
+                    setCurrentWizard('proposal');
+                    setIsAddingNew(true);
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Step Selanjutnya</span>
+                </button>
+              ) : proposals[0].status === 'PENDING' ? (
+                <button
+                  className="btn-brand-primary"
+                  disabled
+                  style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                >
+                  <span>Menunggu ACC Proposal</span>
+                </button>
+              ) : !suratPengantar ? (
+                <button
+                  className="btn-brand-primary"
+                  onClick={() => {
+                    setCurrentWizard('surat_pengantar');
+                    setIsAddingNew(true);
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Step Selanjutnya</span>
+                </button>
+              ) : (
+                <button
+                  className="btn-brand-primary"
+                  disabled
+                  style={{ opacity: 0.6, cursor: 'not-allowed', background: '#16a34a' }}
+                >
+                  <span>✓ Semua Tahapan Selesai</span>
+                </button>
+              )}
             </div>
 
             {/* ID Magang Info Banner */}
@@ -157,38 +224,69 @@ const PengajuanMagang = ({
               </div>
             </div>
 
-            {/* Step 1 Table */}
-            <div className="panel-container" style={{ marginTop: '20px' }}>
-              <div className="pm-step1-table-header">
-                <div className="pm-step1-title-wrap">
-                  <div className="pm-step1-num">1</div>
+            {/* Simulation Block: Approve Proposal (Show only if there's a pending proposal) */}
+            {proposals[0] && proposals[0].status === 'PENDING' && (
+              <div style={{
+                marginTop: '16px',
+                padding: '14px 20px',
+                borderRadius: '12px',
+                background: '#fffbeb',
+                border: '1px solid #fef08a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} style={{ color: '#ca8a04' }} />
                   <div>
-                    <h3 className="pm-step1-title">Pendaftaran ID Magang</h3>
-                    <p className="pm-step1-desc">Formulir awal pendaftaran magang mahasiswa Fakultas Ilmu Komputer</p>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#854d0e' }}>Simulasi Persetujuan Proposal (Prodi)</p>
+                    <p style={{ fontSize: '11px', color: '#a16207' }}>
+                      Status proposal Anda saat ini masih PENDING. Klik tombol di kanan untuk menyetujuinya.
+                    </p>
                   </div>
                 </div>
+                <button
+                  onClick={() => {
+                    setProposals(prev => prev.map(p => p.id === proposals[0].id ? { ...p, status: 'DISETUJUI' } : p));
+                    triggerAlert('Proposal Disetujui', 'Proposal Anda telah disetujui oleh Prodi. Anda dapat melanjutkan ke langkah berikutnya!', 'success');
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#ca8a04',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(202,138,4,0.2)'
+                  }}
+                >
+                  Simulasikan ACC Proposal
+                </button>
               </div>
+            )}
+
+            {/* Unified Table — ID Magang + Proposals */}
+            <div className="panel-container" style={{ marginTop: '20px' }}>
               <div className="table-responsive">
                 <table className="custom-data-table font-medium-cells">
                   <thead>
                     <tr>
                       <th>JENIS PENGAJUAN</th>
-                      <th>NAMA INSTANSI</th>
                       <th>TANGGAL PENGAJUAN</th>
                       <th>STATUS</th>
-                      <th style={{ textAlign: 'center' }}>AKSI</th>
                     </tr>
                   </thead>
                   <tbody>
+                    {/* Row 1: ID Magang */}
                     {idMagangData ? (
                       <tr>
                         <td>
                           <div className="cell-primary font-bold">{idMagangData.jenisPengajuan}</div>
                           <span className="cell-secondary">Semester {idMagangData.semester} · {idMagangData.tahunAkademik}</span>
-                        </td>
-                        <td>
-                          <div className="cell-primary">{idMagangData.namaInstansi}</div>
-                          <span className="cell-secondary">Kepada: {idMagangData.kepadaYth}</span>
                         </td>
                         <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
                           {idMagangData.tanggalPengajuan || '-'}
@@ -199,16 +297,58 @@ const PengajuanMagang = ({
                             DISETUJUI
                           </span>
                         </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <button className="table-action-icon" onClick={() => triggerAlert('Detail Pendaftaran', `ID Magang: ${idMagangValue} | Instansi: ${idMagangData.namaInstansi} | Status: Disetujui Fakultas`, 'info')}>
-                            <ChevronRight size={18} />
-                          </button>
-                        </td>
                       </tr>
                     ) : (
                       <tr>
-                        <td colSpan="5" style={{ textAlign:'center', color:'var(--text-muted)', padding:'32px', fontSize:'13px' }}>
+                        <td colSpan="3" style={{ textAlign:'center', color:'var(--text-muted)', padding:'32px', fontSize:'13px' }}>
                           Data pendaftaran tidak ditemukan.
+                        </td>
+                      </tr>
+                    )}
+                    {/* Rows: Proposals */}
+                    {proposals.map((p) => (
+                      <tr key={`proposal-${p.id}`}>
+                        <td>
+                          <div className="cell-primary font-bold">{p.jenisPengajuan}</div>
+                          <span className="cell-secondary">{p.programDiikuti} · PIC: {p.namaPIC}</span>
+                        </td>
+                        <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
+                          {p.tanggalPengajuan}
+                        </td>
+                        <td>
+                          <span style={{
+                            display:'inline-flex',
+                            alignItems:'center',
+                            gap:'6px',
+                            padding:'6px 14px',
+                            borderRadius:'99px',
+                            fontSize:'12px',
+                            fontWeight:'700',
+                            backgroundColor: p.status === 'DISETUJUI' ? '#f0fdf4' : '#fefce8',
+                            color: p.status === 'DISETUJUI' ? '#16a34a' : '#a16207',
+                            border: p.status === 'DISETUJUI' ? '1px solid #bbf7d0' : '1px solid #fde68a'
+                          }}>
+                            <span className="status-dot-indicator" style={{ backgroundColor: p.status === 'DISETUJUI' ? '#16a34a' : '#ca8a04' }}></span>
+                            {p.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {/* Row 3: Surat Pengantar Magang */}
+                    {suratPengantar && (
+                      <tr>
+                        <td>
+                          <div className="cell-primary font-bold">{suratPengantar.jenisPengajuan}</div>
+                          <span className="cell-secondary">Durasi/Periode: {suratPengantar.periodeMagang}</span>
+                        </td>
+                        <td className="cell-primary font-regular" style={{ color: 'var(--text-muted)' }}>
+                          {suratPengantar.tanggalPengajuan}
+                        </td>
+                        <td>
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:'6px', padding:'6px 14px', borderRadius:'99px', fontSize:'12px', fontWeight:'700', backgroundColor:'#fefce8', color:'#a16207', border:'1px solid #fde68a' }}>
+                            <span className="status-dot-indicator" style={{ backgroundColor:'#ca8a04' }}></span>
+                            {suratPengantar.status}
+                          </span>
                         </td>
                       </tr>
                     )}
@@ -216,7 +356,7 @@ const PengajuanMagang = ({
                 </table>
               </div>
               <div className="table-pagination">
-                <span className="pagination-info">Menampilkan 1 data pendaftaran awal</span>
+                <span className="pagination-info">Menampilkan {1 + proposals.length + (suratPengantar ? 1 : 0)} data pengajuan</span>
                 <div className="pagination-pages">
                   <button className="pag-btn">&larr;</button>
                   <button className="pag-btn active">1</button>
@@ -224,6 +364,8 @@ const PengajuanMagang = ({
                 </div>
               </div>
             </div>
+
+
 
             <style>{`
               .pm-id-info-banner {
