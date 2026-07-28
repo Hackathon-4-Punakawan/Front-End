@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getSuratPengantarHelperInfoApi, submitSuratPengantarApi } from '../../../services/suratPengantarService';
+import { generateSuratPengantarMagangPdf, generateSuratPrasurveyMagangPdf } from '../../../utils/pdfGenerator';
 import {
   ArrowLeft, Send, FileText, User, Mail, Hash, Phone,
-  Clock, CheckCircle2, AlertCircle
+  Clock, CheckCircle2, AlertCircle, Download, Printer
 } from 'lucide-react';
 
 const Field = ({ k, label, icon: Icon, placeholder, type = 'text', readOnly = false, form, errors, set }) => (
@@ -157,7 +158,49 @@ const SuratPengantarForm = ({ currentUser, idMagangValue, approvedProposal, onCa
         </div>
 
         {/* Action Bar */}
-        <div className="psf-action-bar">
+        <div className="psf-action-bar" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={() => generateSuratPrasurveyMagangPdf({
+              nomorSurat: '84/FIK-IF/AMIKOM/PSM/V/2026',
+              tanggalSurat: new Date().toISOString(),
+              namaMitra: approvedProposal?.namaMitra || approvedProposal?.perusahaan || 'PT Bank Central Asia Tbk',
+              namaMahasiswa: currentUser?.name || 'Budi Santoso',
+              nimMahasiswa: currentUser?.identity || '21.11.4001',
+              prodi: 'S1 Informatika'
+            })}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '11px 16px', borderRadius: '10px', border: '1.5px solid #38bdf8',
+              backgroundColor: '#f0f9ff', color: '#0369a1', fontSize: '12.5px', fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            <Download size={14} /> Cetak PDF Surat Prasurvey
+          </button>
+
+          <button
+            type="button"
+            onClick={() => generateSuratPengantarMagangPdf({
+              nomorSurat: '55/FIK-IF/AMIKOM/MAGANG/VI/2026',
+              tanggalSurat: new Date().toISOString(),
+              namaMitra: approvedProposal?.namaMitra || approvedProposal?.perusahaan || 'PT GoTo Gojek Tokopedia Tbk',
+              namaMahasiswa: currentUser?.name || 'Budi Santoso',
+              nimMahasiswa: currentUser?.identity || '21.11.4001',
+              prodi: 'S1 Informatika',
+              tanggalMulai: form.tanggalMulai || '1 Februari 2026',
+              tanggalSelesai: form.tanggalSelesai || '31 Juli 2026'
+            })}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '11px 16px', borderRadius: '10px', border: '1.5px solid #a855f7',
+              backgroundColor: '#faf5ff', color: '#7e22ce', fontSize: '12.5px', fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            <Printer size={14} /> Cetak PDF Surat Pengantar
+          </button>
+
           <button type="button" className="psf-btn-cancel" onClick={onCancel}>Batal</button>
           <button type="submit" className="psf-btn-submit">
             <Send size={15} />

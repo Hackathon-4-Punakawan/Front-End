@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { generateSuratPenunjukanDplPdf } from '../../utils/pdfGenerator';
 import {
   LogOut, GraduationCap, CheckSquare, Layers, Award, Mail, Send, Check, X, Bell,
   ChevronLeft, ChevronRight, LayoutDashboard, Search, UserCheck, FileCheck, CheckCircle,
@@ -1037,9 +1038,32 @@ const KaprodiDashboard = () => {
                                 <Mail size={14} /> Tetapkan Dosen
                               </button>
                             ) : (
-                              <span style={{ fontSize: '12px', color: '#059669', fontWeight: '700', backgroundColor: '#ecfdf5', padding: '6px 12px', borderRadius: '6px', border: '1px solid #a7f3d0', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                <Check size={14} /> Email Terkirim
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                                <span style={{ fontSize: '12px', color: '#059669', fontWeight: '700', backgroundColor: '#ecfdf5', padding: '6px 10px', borderRadius: '6px', border: '1px solid #a7f3d0', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  <Check size={14} /> Email Terkirim
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => generateSuratPenunjukanDplPdf({
+                                    nomorSurat: '45/FIK-IF/AMIKOM/STDM/VI/2026',
+                                    tanggalSurat: new Date().toISOString(),
+                                    namaDosen: prop.dosenPembimbing,
+                                    namaMahasiswa: prop.name,
+                                    nimMahasiswa: prop.nim,
+                                    prodi: 'S1 Informatika',
+                                    namaInstansi: prop.company,
+                                    periodeMulai: '1 Februari 2026',
+                                    durasi: '6 Bulan'
+                                  })}
+                                  style={{
+                                    background: '#faf5ff', border: '1px solid #d8b4fe', color: '#7e22ce',
+                                    padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700',
+                                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  <Download size={12} /> SK DPL (PDF)
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
