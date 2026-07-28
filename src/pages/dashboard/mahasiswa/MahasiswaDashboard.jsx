@@ -735,54 +735,113 @@ const MahasiswaDashboard = () => {
                   </span>
                   <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
                 </div>
-              ) : conversionState.status === 'none' && !dashboardData?.hero_card ? (
-                // Dashboard is locked until internship submission wizard is completed (i.e. SKS conversion submitted)
-                <div className="dashboard-locked-container">
-                  <div className="locked-card">
-                    <div className="locked-icon-wrapper">
-                      <AlertCircle size={32} />
-                    </div>
-                    <h2 className="locked-title">Pengajuan Magang Belum Selesai</h2>
-                    <p className="locked-description">
-                      Anda harus melengkapi seluruh tahapan pengajuan magang di menu <strong>Pengajuan Magang</strong> hingga selesai terlebih dahulu sebelum isi dashboard dapat ditampilkan secara otomatis.
-                    </p>
-
-                    {/* Step Tracker */}
-                    <div className="locked-steps-tracker">
-                      <div className="tracker-header">Progress Pengajuan Magang Anda</div>
-                      <div className="tracker-steps-grid">
-                        <div className={`tracker-step-item ${idMagangStatus === 'approved' ? 'completed' : idMagangStatus === 'pending' ? 'pending' : ''}`}>
-                          <div className="step-number">1</div>
-                          <div className="step-name">ID Magang</div>
-                          <div className="step-status">{idMagangStatus === 'approved' ? 'Selesai' : idMagangStatus === 'pending' ? 'Pending' : 'Belum'}</div>
-                        </div>
-                        <div className={`tracker-step-item ${proposals[0]?.status === 'DISETUJUI' ? 'completed' : proposals[0] ? 'pending' : ''}`}>
-                          <div className="step-number">2</div>
-                          <div className="step-name">Proposal</div>
-                          <div className="step-status">{proposals[0]?.status === 'DISETUJUI' ? 'Selesai' : proposals[0] ? 'Pending' : 'Belum'}</div>
-                        </div>
-                        <div className={`tracker-step-item ${suratPengantar?.status === 'DISETUJUI' ? 'completed' : suratPengantar ? 'pending' : ''}`}>
-                          <div className="step-number">3</div>
-                          <div className="step-name">Surat Pengantar</div>
-                          <div className="step-status">{suratPengantar?.status === 'DISETUJUI' ? 'Selesai' : suratPengantar ? 'Pending' : 'Belum'}</div>
-                        </div>
-                        <div className={`tracker-step-item ${dosenPembimbing?.status === 'DISETUJUI' ? 'completed' : dosenPembimbing ? 'pending' : ''}`}>
-                          <div className="step-number">4</div>
-                          <div className="step-name">Dosen Pembimbing</div>
-                          <div className="step-status">{dosenPembimbing?.status === 'DISETUJUI' ? 'Selesai' : dosenPembimbing ? 'Pending' : 'Belum'}</div>
-                        </div>
-                        <div className={`tracker-step-item ${conversionState.status !== 'none' ? 'completed' : ''}`}>
-                          <div className="step-number">5</div>
-                          <div className="step-name">Konversi SKS</div>
-                          <div className="step-status">{conversionState.status !== 'none' ? 'Selesai' : 'Belum'}</div>
-                        </div>
-                      </div>
+              ) : (dashboardData && dashboardData.has_pengajuan === false) || (conversionState.status === 'none' && (!dashboardData || dashboardData.has_pengajuan === false)) ? (
+                // Clean Welcome & Onboarding Dashboard for New Accounts / Unsubmitted State
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeIn 0.3s ease-in-out' }}>
+                  {/* Welcome Banner */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                    borderRadius: '24px',
+                    padding: '32px 36px',
+                    color: '#ffffff',
+                    boxShadow: '0 12px 32px rgba(124, 58, 237, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '24px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ maxWidth: '640px' }}>
+                      <span style={{
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        color: '#ffffff',
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        letterSpacing: '0.5px',
+                        display: 'inline-block',
+                        marginBottom: '14px',
+                        backdropFilter: 'blur(4px)'
+                      }}>
+                        ✨ PORTAL KONVERSI SKS OBE MAGANG
+                      </span>
+                      <h2 style={{ fontSize: '26px', fontWeight: '800', margin: '0 0 10px 0', lineHeight: '1.3', fontFamily: "'Outfit', sans-serif" }}>
+                        Selamat Datang, {currentUser?.name || dashboardData?.mahasiswa?.nama || 'Mahasiswa Informatika'}! 👋
+                      </h2>
+                      <p style={{ fontSize: '14.5px', opacity: 0.95, margin: 0, lineHeight: '1.6' }}>
+                        Anda belum memiliki pengajuan magang atau konversi SKS S-1 Informatika yang aktif saat ini. Silakan mulai pendaftaran Anda untuk mendapatkan konversi hingga 20 SKS!
+                      </p>
                     </div>
 
-                    <button className="btn-brand-primary locked-cta" onClick={() => setActiveTab('internship')}>
-                      <span>Isi Pengajuan Magang Sekarang</span>
-                      <ArrowRight size={16} />
-                    </button>
+                    <div>
+                      <button
+                        onClick={() => setActiveTab('internship')}
+                        style={{
+                          background: '#ffffff',
+                          color: '#4f46e5',
+                          padding: '14px 28px',
+                          borderRadius: '14px',
+                          border: 'none',
+                          fontSize: '14px',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Plus size={18} color="#4f46e5" />
+                        <span>Mulai Pengajuan Magang</span>
+                        <ArrowRight size={16} color="#4f46e5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 5-Step Process Guide Card Grid */}
+                  <div style={{
+                    background: '#ffffff',
+                    borderRadius: '20px',
+                    border: '1px solid #e2e8f0',
+                    padding: '28px',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.03)'
+                  }}>
+                    <div style={{ marginBottom: '20px' }}>
+                      <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: '0 0 6px 0', fontFamily: "'Outfit', sans-serif" }}>
+                        🗺️ Alur Pengajuan Magang & Konversi SKS OBE (5 Langkah Mudah)
+                      </h3>
+                      <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                        Tahapan resmi pengajuan magang di lingkungan Fakultas Ilmu Komputer AMIKOM Yogyakarta:
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      {[
+                        { step: '1', title: 'Pendaftaran ID Magang', desc: 'Input profil instansi & dapatkan ID Magang FIK resmi.', icon: FileText, color: '#4f46e5', bg: '#f5f3ff' },
+                        { step: '2', title: 'Proposal Magang', desc: 'Unggah proposal magang industri untuk peninjauan Prodi.', icon: CheckCircle2, color: '#0284c7', bg: '#f0f9ff' },
+                        { step: '3', title: 'Surat Pengantar FIK', desc: 'Unduh Surat Pengantar Fakultas bertanda tangan resmi.', icon: Building2, color: '#059669', bg: '#ecfdf5' },
+                        { step: '4', title: 'Plotting DPL', desc: 'Penetapan Dosen Pembimbing Lapangan (DPL).', icon: User, color: '#7c3aed', bg: '#faf5ff' },
+                        { step: '5', title: 'Konversi SKS & AI', desc: 'Rekomendasi AI CPMK & ACC Penilaian DPL.', icon: GraduationCap, color: '#d97706', bg: '#fffbeb' },
+                      ].map((st, i) => {
+                        const IconComp = st.icon;
+                        return (
+                          <div key={i} style={{ background: st.bg, borderRadius: '16px', padding: '18px', border: `1px solid ${st.color}22` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: st.color, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                                <IconComp size={18} />
+                              </div>
+                              <span style={{ fontSize: '11px', fontWeight: '800', color: st.color, background: '#ffffff', padding: '2px 8px', borderRadius: '12px' }}>
+                                STEP 0{st.step}
+                              </span>
+                            </div>
+                            <h4 style={{ fontSize: '13.5px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px 0', fontFamily: "'Outfit', sans-serif" }}>{st.title}</h4>
+                            <p style={{ fontSize: '11.5px', color: '#475569', margin: 0, lineHeight: '1.4' }}>{st.desc}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : (
