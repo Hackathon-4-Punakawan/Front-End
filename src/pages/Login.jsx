@@ -3,8 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import Input from '../components/Input';
-import { User, Lock, ArrowRight, AlertCircle, KeyRound } from 'lucide-react';
-import unikaLogo from '../assets/unika-logo.svg';
+import { User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const { login, currentUser, getRoleLabel } = useAuth();
@@ -24,21 +23,21 @@ const Login = () => {
     }
   }, [currentUser, navigate]);
 
-  // Uji coba Akun Demo (Auto-fill)
+  // Uji coba Akun Seeder Backend (Auto-fill)
   const handleAutoFill = () => {
     setError('');
     if (role === 'mahasiswa') {
-      setIdentityInput('22.11.4321');
-      setPassword('password123');
+      setIdentityInput('21.11.4001');
+      setPassword('Budi#1234');
     } else if (role === 'dosen') {
-      setIdentityInput('0412088501');
-      setPassword('password123');
+      setIdentityInput('0512038901');
+      setPassword('Dosen#1234');
     } else if (role === 'mitra') {
-      setIdentityInput('hr@google.co.id');
-      setPassword('password123');
+      setIdentityInput('rian.hidayat@goto.com');
+      setPassword('Mtr#1234');
     } else if (role === 'kaprodi') {
-      setIdentityInput('0419077902');
-      setPassword('password123');
+      setIdentityInput('kaprodi.if@amikom.ac.id');
+      setPassword('Admin#1234');
     }
   };
 
@@ -50,7 +49,7 @@ const Login = () => {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!identityInput || !password) {
       setError('Harap isi semua kolom input.');
@@ -60,26 +59,25 @@ const Login = () => {
     setError('');
     setIsLoading(true);
 
-    // Simulasi loading 800ms agar terasa seperti request API sungguhan
-    setTimeout(() => {
-      const result = login(identityInput, password, role);
+    try {
+      const result = await login(identityInput, password, role);
       setIsLoading(false);
-      
+
       if (result.success) {
         navigate(`/dashboard/${result.user.role}`);
       } else {
-        setError(result.message);
+        setError(result.message || 'Login gagal.');
       }
-    }, 800);
+    } catch (err) {
+      setIsLoading(false);
+      setError('Terjadi kesalahan saat terhubung ke server.');
+    }
   };
 
   return (
     <div className="auth-container fade-in">
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-          <img src={unikaLogo} alt="UNIKA Logo" style={{ height: '56px', width: 'auto' }} />
-        </div>
-        <h1 className="auth-title" style={{ textAlign: 'center' }} >Selamat Datang di Konversi Amikom</h1>
+        <h1 className="auth-title" style={{ textAlign: 'center' }}>Selamat Datang di Konversi Amikom</h1>
         <p className="auth-subtitle">Login Menggunakan Akun Amikom</p>
 
         {error && (
@@ -118,7 +116,7 @@ const Login = () => {
                 className={`role-button ${role === 'dosen' ? 'active' : ''}`}
                 onClick={() => handleRoleChange('dosen')}
               >
-                Dosen
+                Dosen DPL
               </button>
               <button
                 type="button"
@@ -137,11 +135,11 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Email / NIM Input */}
+          {/* Email / NIM / NIDN Input */}
           <Input
             id="identity"
-            label={role === 'mahasiswa' ? 'EMAIL / NIM' : role === 'mitra' ? 'EMAIL MITRA / ID' : 'EMAIL / NIDN'}
-            placeholder={role === 'mahasiswa' ? 'john.doe@university.edu' : role === 'mitra' ? 'Contoh: email perusahaan atau ID' : 'Contoh: NIDN atau email'}
+            label={role === 'mahasiswa' ? 'EMAIL / NIM' : role === 'mitra' ? 'EMAIL SUPERVISOR MITRA' : 'EMAIL / NIDN'}
+            placeholder={role === 'mahasiswa' ? 'Contoh: 21.11.4001 atau email student' : role === 'mitra' ? 'Contoh: rian.hidayat@goto.com' : 'Contoh: 0512038901 atau email dosen'}
             type="text"
             icon={User}
             value={identityInput}
@@ -156,7 +154,7 @@ const Login = () => {
             label={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                 <span>PASSWORD</span>
-                <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('Fitur reset password belum tersedia pada versi demo ini.'); }} style={{ textTransform: 'none', fontWeight: '600', color: 'var(--primary)', letterSpacing: 'normal' }}>Lupa Password?</a>
+                <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('Fitur reset password belum tersedia pada versi ini.'); }} style={{ textTransform: 'none', fontWeight: '600', color: 'var(--primary)', letterSpacing: 'normal' }}>Lupa Password?</a>
               </div>
             }
             placeholder="••••••••"
@@ -181,9 +179,10 @@ const Login = () => {
                 fontWeight: '600',
                 textDecoration: 'underline',
                 padding: '4px',
+                cursor: 'pointer',
               }}
             >
-              Isi Otomatis Akun Demo {getRoleLabel(role)}
+              Isi Otomatis Akun Seeder {getRoleLabel(role)}
             </button>
           </div>
 
@@ -191,7 +190,7 @@ const Login = () => {
           <button type="submit" className="btn-primary" disabled={isLoading}>
             {isLoading ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <span className="spinner"></span> Memproses...
+                <span className="spinner"></span> Memproses API...
               </span>
             ) : (
               <>
@@ -207,15 +206,21 @@ const Login = () => {
         <button
           type="button"
           className="btn-sso"
-          onClick={() => {
+          onClick={async () => {
             setError('');
             setIsLoading(true);
-            setTimeout(() => {
+            try {
+              const result = await login('21.11.4001', 'Budi#1234', 'mahasiswa');
               setIsLoading(false);
-              // Langsung masuk sebagai Mahasiswa dengan SSO Kampus
-              login('22.11.4321', 'password123', 'mahasiswa');
-              navigate('/dashboard/mahasiswa');
-            }, 1000);
+              if (result.success) {
+                navigate(`/dashboard/${result.user.role}`);
+              } else {
+                setError(result.message);
+              }
+            } catch (err) {
+              setIsLoading(false);
+              setError('SSO Login gagal.');
+            }
           }}
           disabled={isLoading}
         >

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getProposalMagangHelperInfoApi, submitProposalMagangApi } from '../../../services/proposalMagangService';
 import {
   ArrowLeft, Send, FileText, User, Mail, Hash, Phone,
   Building2, MapPin, Clock, Briefcase, BookOpen, ClipboardList,
@@ -37,7 +38,7 @@ const FileUploadField = ({ label, fieldKey, value, onChange, accept, icon: Icon 
         {hasFile ? (
           <div className="pmf-file-chosen">
             <CheckCircle2 size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
-            <span className="pmf-file-name">{value.name}</span>
+            <span className="pmf-file-name">{value.name || 'Dokumen_Terlampir.pdf'}</span>
             <button
               type="button"
               className="pmf-file-remove"
@@ -84,10 +85,103 @@ const ProposalMagangForm = ({ currentUser, idMagangData, idMagangValue, onCancel
     fileTranskrip: null,
   });
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const token = currentUser?.token || localStorage.getItem('edushift_token');
+
+  // Load prefilled helper info
+  useEffect(() => {
+    if (!token) return;
+    const loadHelper = async () => {
+      const res = await getProposalMagangHelperInfoApi(token);
+      if (res.success && res.data) {
+        const instansiName = res.data.auto_filled_instansi?.nama_instansi && res.data.auto_filled_instansi.nama_instansi !== '-' 
+          ? res.data.auto_filled_instansi.nama_instansi 
+          : (idMagangData?.namaInstansi && idMagangData.namaInstansi !== '-' ? idMagangData.namaInstansi : '');
+        
+        const instansiAddress = res.data.auto_filled_instansi?.alamat_instansi && res.data.auto_filled_instansi.alamat_instansi !== '-' 
+          ? res.data.auto_filled_instansi.alamat_instansi 
+          : (idMagangData?.alamatInstansi && idMagangData.alamatInstansi !== '-' ? idMagangData.alamatInstansi : '');
+
+        const picName = res.data.auto_filled_instansi?.tujuan_surat && res.data.auto_filled_instansi.tujuan_surat !== '-' 
+          ? res.data.auto_filled_instansi.tujuan_surat 
+          : (idMagangData?.kepadaYth && idMagangData.kepadaYth !== '-' ? idMagangData.kepadaYth : '');
+
+        setForm(p => ({
+          ...p,
+          namaMahasiswa: res.data.mahasiswa?.nama || p.namaMahasiswa,
+          emailMahasiswa: res.data.mahasiswa?.email || p.emailMahasiswa,
+          nimMahasiswa: res.data.mahasiswa?.nim || p.nimMahasiswa,
+          namaInstansiMBKM: instansiName || p.namaInstansiMBKM,
+          alamatInstansiMBKM: instansiAddress || p.alamatInstansiMBKM,
+          namaPIC: p.namaPIC || picName,
+        }));
+      }
+    };
+    loadHelper();
+  }, [token, idMagangData]);
+
+  const calculateDurasiString = (startDateStr, endDateStr) => {
+    if (!startDateStr || !endDateStr) return '';
+
+    const start = new Date(startDateStr);
+    const end = new Date(endDateStr);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return '';
+
+    const yearDiff = end.getFullYear() - start.getFullYear();
+    const monthDiff = end.getMonth() - start.getMonth();
+    let totalMonths = yearDiff * 12 + monthDiff;
+
+    const dayDiff = end.getDate() - start.getDate();
+    if (dayDiff >= 15) {
+      totalMonths += 1;
+    }
+    if (totalMonths <= 0) totalMonths = 1;
+
+    const monthNamesIndo = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    const startMonthName = monthNamesIndo[start.getMonth()];
+    const endMonthName = monthNamesIndo[end.getMonth()];
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+
+    let rangeText = '';
+    if (startYear === endYear) {
+      if (start.getMonth() === end.getMonth()) {
+        rangeText = `${startMonthName} ${startYear}`;
+      } else {
+        rangeText = `${startMonthName} – ${endMonthName} ${startYear}`;
+      }
+    } else {
+      rangeText = `${startMonthName} ${startYear} – ${endMonthName} ${endYear}`;
+    }
+
+    return `${totalMonths} Bulan (${rangeText})`;
+  };
 
   const set = (k, v) => {
-    setForm(p => ({ ...p, [k]: v }));
+    setForm(p => {
+      const next = { ...p, [k]: v };
+      if (k === 'tanggalMulai' || k === 'tanggalSelesai') {
+        const autoDuration = calculateDurasiString(
+          k === 'tanggalMulai' ? v : p.tanggalMulai,
+          k === 'tanggalSelesai' ? v : p.tanggalSelesai
+        );
+        if (autoDuration) {
+          next.durasiPelaksanaan = autoDuration;
+        }
+      }
+      return next;
+    });
+
     if (errors[k]) setErrors(p => { const c = { ...p }; delete c[k]; return c; });
+    if ((k === 'tanggalMulai' || k === 'tanggalSelesai') && errors.durasiPelaksanaan) {
+      setErrors(p => { const c = { ...p }; delete c.durasiPelaksanaan; return c; });
+    }
   };
 
   const validate = () => {
@@ -112,12 +206,24 @@ const ProposalMagangForm = ({ currentUser, idMagangData, idMagangValue, onCancel
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
+    if (!validate()) {
+      triggerAlert('Formulir Belum Lengkap', 'Harap lengkapi semua kolom yang wajib diisi.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const res = await submitProposalMagangApi(token, {
+      ...form,
+      idPengajuan: idMagangData?.id_pengajuan || null,
+    });
+    setIsSubmitting(false);
+
+    if (res.success) {
       onSubmit(form);
     } else {
-      triggerAlert('Formulir Belum Lengkap', 'Harap lengkapi semua kolom yang wajib diisi.', 'error');
+      triggerAlert('Gagal Mengirim Proposal', res.message || 'Terjadi kesalahan saat mengirim proposal magang.', 'error');
     }
   };
 
@@ -178,8 +284,8 @@ const ProposalMagangForm = ({ currentUser, idMagangData, idMagangValue, onCancel
             <Field k="tanggalMulai" label="Tanggal Mulai Magang" icon={Clock} type="date" form={form} errors={errors} set={set} />
             <Field k="tanggalSelesai" label="Tanggal Berakhir Magang" icon={Clock} type="date" form={form} errors={errors} set={set} />
 
-            <Field k="namaInstansiMBKM" label="Nama Instansi / Tempat Kegiatan MBKM" icon={Building2} placeholder="Nama tempat magang" readOnly form={form} errors={errors} set={set} />
-            <Field k="alamatInstansiMBKM" label="Alamat Tempat Kegiatan MBKM" icon={MapPin} placeholder="Alamat instansi" readOnly form={form} errors={errors} set={set} />
+            <Field k="namaInstansiMBKM" label="Nama Instansi / Tempat Kegiatan MBKM" icon={Building2} placeholder="Nama tempat magang" readOnly={Boolean(form.namaInstansiMBKM && form.namaInstansiMBKM !== '-')} form={form} errors={errors} set={set} />
+            <Field k="alamatInstansiMBKM" label="Alamat Tempat Kegiatan MBKM" icon={MapPin} placeholder="Masukkan alamat instansi/perusahaan tempat magang" readOnly={Boolean(form.alamatInstansiMBKM && form.alamatInstansiMBKM !== '-')} form={form} errors={errors} set={set} />
           </div>
 
           <div className="pmf-subsection-label">Kontak PIC (Person in Charge)</div>
@@ -274,10 +380,19 @@ const ProposalMagangForm = ({ currentUser, idMagangData, idMagangValue, onCancel
 
         {/* Action Bar */}
         <div className="pmf-action-bar">
-          <button type="button" className="pmf-btn-cancel" onClick={onCancel}>Batal</button>
-          <button type="submit" className="pmf-btn-submit">
-            <Send size={15} />
-            Kirim Proposal Magang
+          <button type="button" className="pmf-btn-cancel" onClick={onCancel} disabled={isSubmitting}>Batal</button>
+          <button type="submit" className="pmf-btn-submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <span className="spinner" style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }}></span>
+                Mengirim Proposal...
+              </>
+            ) : (
+              <>
+                <Send size={15} />
+                Kirim Proposal Magang
+              </>
+            )}
           </button>
         </div>
       </form>

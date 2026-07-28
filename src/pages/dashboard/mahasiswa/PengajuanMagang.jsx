@@ -4,6 +4,17 @@ import SuratPengantarForm from './SuratPengantarForm';
 import DosenPembimbingForm from './DosenPembimbingForm';
 import StatusKonversi from './StatusKonversi';
 import { 
+  getPengajuanFikHelperInfoApi,
+  submitPengajuanFikApi,
+  getMyPengajuanFikStatusApi
+} from '../../../services/pengajuanFikService';
+import {
+  getMyProposalStatusApi
+} from '../../../services/proposalMagangService';
+import { submitSuratPengantarApi, getMySuratPengantarStatusApi } from '../../../services/suratPengantarService';
+import { submitPengajuanDplApi, getMyPengajuanDplStatusApi } from '../../../services/pengajuanDplService';
+import { getKonversiCatalogApi, getAiRecommendationApi, submitKonversiMatkulApi, getMyKonversiStatusApi } from '../../../services/konversiMatkulService';
+import { 
   Plus, 
   Search, 
   Filter, 
@@ -76,6 +87,9 @@ const PengajuanMagang = ({
 }) => {
   const [isApplyingId, setIsApplyingId] = useState(idMagangStatus === 'pending');
   const [selectedDetail, setSelectedDetail] = useState(null);
+  const [isSubmittingFik, setIsSubmittingFik] = useState(false);
+
+  const token = currentUser?.token || localStorage.getItem('edushift_token');
 
   useEffect(() => {
     if (idMagangStatus === 'pending') setIsApplyingId(true);
@@ -90,11 +104,138 @@ const PengajuanMagang = ({
     kepadaYth: '',
     namaInstansi: '',
     alamatInstansi: '',
+    posisi: '',
+    jenisProgram: 'Magang Mandiri',
     semester: '6',
     tahunAkademik: '2026/2027'
   });
 
   const [formErrors, setFormErrors] = useState({});
+
+  // 1. Pre-fill form from /api/v1/pengajuan-fik/helper-info
+  useEffect(() => {
+    if (!token) return;
+    const loadHelperInfo = async () => {
+      const res = await getPengajuanFikHelperInfoApi(token);
+      if (res.success && res.data) {
+        setFormInit(prev => ({
+          ...prev,
+          email: res.data.email || prev.email,
+          nama: res.data.nama || prev.nama,
+          nim: res.data.nim || prev.nim,
+          prodi: res.data.prodi || prev.prodi,
+          semester: res.data.semester ? String(res.data.semester) : prev.semester,
+          tahunAkademik: res.data.tahun_akademik || prev.tahunAkademik,
+        }));
+      }
+    };
+    loadHelperInfo();
+  }, [token]);
+
+  // 2. Fetch & Poll /api/v1/pengajuan-fik/my-status
+  useEffect(() => {
+    if (!token) return;
+    let isMounted = true;
+
+    const checkStatus = async () => {
+      const res = await getMyPengajuanFikStatusApi(token);
+      if (isMounted && res.success && res.data && res.data.length > 0) {
+        const latest = res.data[0];
+        const officialId = latest.id_magang_fakultas || latest.nomor_layanan_fik;
+        const statusStr = (latest.status_surat_fakultas || latest.status_pengajuan || '').toUpperCase();
+
+        const formattedDate = latest.created_at
+          ? new Date(latest.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+          : new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+        setIdMagangData({
+          jenisPengajuan: latest.jenis_pengajuan || 'Pengajuan ID Magang',
+          kepadaYth: latest.tujuan_surat || '-',
+          namaInstansi: latest.nama_instansi || '-',
+          alamatInstansi: latest.alamat_instansi || '-',
+          semester: latest.semester || '6',
+          tahunAkademik: latest.tahun_akademik || '2026/2027',
+          tanggalPengajuan: formattedDate,
+          idMagangFakultas: officialId,
+          statusSuratFakultas: latest.status_surat_fakultas,
+          suratPengantarUrl: latest.surat_pengantar_url,
+        });
+
+        if (statusStr.includes('DISETUJUI') || (officialId && !officialId.includes('PENDING'))) {
+          setIdMagangValue(officialId);
+          setIdMagangStatus('approved');
+        } else {
+          setIdMagangStatus('pending');
+          setIsApplyingId(true);
+        }
+      }
+    };
+
+    let interval = null;
+    checkStatus().then(() => {
+      if (isMounted && idMagangStatus === 'pending') {
+        interval = setInterval(checkStatus, 4000);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      if (interval) clearInterval(interval);
+    };
+  }, [token, idMagangStatus, setIdMagangData, setIdMagangStatus, setIdMagangValue]);
+
+  // 3. Fetch & Sync Step 2 Proposal Status from /api/v1/proposal-magang/my-proposal
+  useEffect(() => {
+    if (!token) return;
+    let isMounted = true;
+
+    const fetchMyProposals = async () => {
+      const res = await getMyProposalStatusApi(token);
+      if (isMounted && res.success && res.data) {
+        const mapped = res.data.map((p, idx) => {
+          const statusStr = (p.status_review || 'Review Proposal Prodi').toUpperCase();
+          let normStatus = 'PENDING';
+          if (statusStr.includes('ACC') || statusStr.includes('SETUJU') || statusStr.includes('DISETUJUI')) {
+            normStatus = 'DISETUJUI';
+          } else if (statusStr.includes('REVISI') || statusStr.includes('TOLAK')) {
+            normStatus = 'REVISI';
+          }
+
+          const formattedDate = p.created_at
+            ? new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+            : new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+          return {
+            id: p.id_proposal || idx + 1,
+            jenisPengajuan: 'Pengajuan Proposal Magang',
+            namaProgramKegiatan: p.nama_program_kegiatan || '-',
+            programDiikuti: p.program_diikuti || 'Magang Berdampak',
+            namaInstansi: p.nama_instansi || '-',
+            namaPIC: p.nama_pic || '-',
+            tanggalMulai: p.tanggal_mulai || '-',
+            tanggalSelesai: p.tanggal_selesai || '-',
+            tanggalPengajuan: formattedDate,
+            status: normStatus,
+            rawStatus: p.status_review,
+            catatanRevisi: p.catatan_revisi,
+          };
+        });
+        setProposals(mapped);
+      }
+    };
+
+    let interval = null;
+    fetchMyProposals().then(() => {
+      if (isMounted && (!proposals || proposals.length === 0 || proposals.some(p => p.status === 'PENDING'))) {
+        interval = setInterval(fetchMyProposals, 5000);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      if (interval) clearInterval(interval);
+    };
+  }, [token, setProposals]);
 
   const handleFormChange = (field, value) => {
     setFormInit(prev => ({ ...prev, [field]: value }));
@@ -114,21 +255,31 @@ const PengajuanMagang = ({
     return Object.keys(errs).length === 0;
   };
 
-  const handleSaveInit = (e) => {
+  const handleSaveInit = async (e) => {
     e.preventDefault();
-    if (validateFormInit()) {
+    if (!validateFormInit()) {
+      triggerAlert('Gagal Mengajukan', Object.values(formErrors)[0] || 'Harap lengkapi semua kolom wajib!', 'error');
+      return;
+    }
+
+    setIsSubmittingFik(true);
+    const res = await submitPengajuanFikApi(token, formInit);
+    setIsSubmittingFik(false);
+
+    if (res.success) {
       const tanggalPengajuan = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
       setIdMagangData({ ...formInit, tanggalPengajuan });
       setIdMagangStatus('pending');
-      triggerAlert('Pendaftaran Terkirim', 'Formulir berhasil dikirim ke Fakultas. Status saat ini PENDING menunggu persetujuan.', 'success');
+      setIsApplyingId(true);
+      triggerAlert('Pendaftaran Terkirim', 'Formulir berhasil dikirim ke Fakultas. Sistem sedang memproses persetujuan otomatis (Simulasi 5 Detik FIK).', 'success');
     } else {
-      triggerAlert('Gagal Mengajukan', Object.values(formErrors)[0] || 'Harap lengkapi semua kolom wajib!', 'error');
+      triggerAlert('Gagal Mengajukan', res.message || 'Terjadi kesalahan saat mengirim pengajuan.', 'error');
     }
   };
 
   const handleSimulateApprove = (e) => {
     e.preventDefault();
-    const newId = `MGG-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newId = `FIK${Math.floor(6199300 + Math.random() * 100)}`;
     setIdMagangValue(newId);
     setIdMagangStatus('approved');
     triggerAlert('Persetujuan Sukses', `ID Magang resmi Anda diterbitkan: ${newId}. Anda sekarang dialihkan ke Dashboard Manajemen Pengajuan Magang.`, 'success');
@@ -1388,9 +1539,18 @@ const PengajuanMagang = ({
                 <button type="button" className="pm-btn-cancel" onClick={() => setIsApplyingId(false)}>
                   Batal
                 </button>
-                <button type="submit" className="pm-btn-submit">
-                  <Send size={15} />
-                  Simpan & Ajukan Pendaftaran
+                <button type="submit" className="pm-btn-submit" disabled={isSubmittingFik}>
+                  {isSubmittingFik ? (
+                    <>
+                      <span className="spinner" style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }}></span>
+                      Mengirim ke Backend FIK...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={15} />
+                      Simpan & Ajukan Pendaftaran
+                    </>
+                  )}
                 </button>
               </div>
             )}

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getSuratPengantarHelperInfoApi, submitSuratPengantarApi } from '../../../services/suratPengantarService';
 import {
   ArrowLeft, Send, FileText, User, Mail, Hash, Phone,
   Clock, CheckCircle2, AlertCircle
@@ -27,9 +28,30 @@ const SuratPengantarForm = ({ currentUser, idMagangValue, approvedProposal, onCa
     idMagang: idMagangValue || '',
     tanggalMulai: approvedProposal?.tanggalMulai || '',
     tanggalSelesai: approvedProposal?.tanggalSelesai || '',
-    periodeMagang: '2 Bulan',
+    periodeMagang: '6 Bulan',
   });
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const token = currentUser?.token || localStorage.getItem('edushift_token');
+
+  useEffect(() => {
+    if (!token) return;
+    const loadHelper = async () => {
+      const res = await getSuratPengantarHelperInfoApi(token);
+      if (res.success && res.data) {
+        setForm(p => ({
+          ...p,
+          email: res.data.email || p.email,
+          idMagang: res.data.id_magang || p.idMagang,
+          tanggalMulai: res.data.tanggal_mulai_magang || p.tanggalMulai,
+          tanggalSelesai: res.data.tanggal_berakhir_magang || p.tanggalSelesai,
+          periodeMagang: res.data.periode_magang || p.periodeMagang,
+        }));
+      }
+    };
+    loadHelper();
+  }, [token]);
 
   const set = (k, v) => {
     setForm(p => ({ ...p, [k]: v }));
@@ -45,12 +67,31 @@ const SuratPengantarForm = ({ currentUser, idMagangValue, approvedProposal, onCa
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      onSubmit(form);
-    } else {
+    if (!validate()) {
       triggerAlert('Formulir Belum Lengkap', 'Harap lengkapi semua kolom yang wajib diisi.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const payload = {
+      id_magang: form.idMagang || idMagangValue,
+      tanggal_mulai: form.tanggalMulai,
+      tanggal_berakhir: form.tanggalSelesai,
+      periode_magang: form.periodeMagang,
+    };
+
+    const res = await submitSuratPengantarApi(token, payload);
+    setIsSubmitting(false);
+
+    if (res.success) {
+      onSubmit({
+        ...form,
+        suratPengantarUrl: res.data?.surat_pengantar_url,
+      });
+    } else {
+      triggerAlert('Gagal Mengirimkan Pengajuan', res.message || 'Gagal mengirim pengajuan surat pengantar.', 'error');
     }
   };
 
