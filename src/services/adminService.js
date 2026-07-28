@@ -225,3 +225,55 @@ export const plottingAdminDplApi = async (token, payload) => {
     return { success: false, message: 'Gagal terhubung ke server' };
   }
 };
+
+/**
+ * 11. Bulk Import Data Katalog Mata Kuliah & CPMK
+ * POST /api/v1/admin/import/mata-kuliah
+ */
+export const importAdminMataKuliahApi = async (token, items) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/import/mata-kuliah`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ items }),
+    });
+    const data = await response.json();
+    if (!response.ok) return { success: false, message: data.message || 'Gagal mengimpor katalog mata kuliah' };
+    return { success: true, data: data.data, message: data.message };
+  } catch (error) {
+    console.error('Error importAdminMataKuliahApi:', error);
+    return { success: false, message: 'Gagal terhubung ke server' };
+  }
+};
+
+/**
+ * 12. Export Data Katalog Mata Kuliah & CPMK
+ * GET /api/v1/admin/export/mata-kuliah?format=excel
+ */
+export const exportAdminMataKuliahApi = async (token, format = 'excel') => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/export/mata-kuliah?format=${format}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Gagal mengunduh file export katalog mata kuliah');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Katalog_Mata_Kuliah_CPMK_Informatika.${format === 'csv' ? 'csv' : 'xlsx'}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Error exportAdminMataKuliahApi:', error);
+    return { success: false, message: error.message };
+  }
+};

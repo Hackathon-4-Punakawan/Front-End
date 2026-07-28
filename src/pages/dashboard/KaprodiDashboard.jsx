@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
   LogOut, GraduationCap, CheckSquare, Layers, Award, Mail, Send, Check, X, Bell,
   ChevronLeft, ChevronRight, LayoutDashboard, Search, UserCheck, FileCheck, CheckCircle,
   XCircle, ExternalLink, FileText, Lock, AlertCircle, UserPlus, Plus, Building2, BookOpen,
-  Users, RefreshCcw, Eye, Edit3, Trash2
+  Users, RefreshCcw, Eye, Edit3, Trash2, Download, Upload
 } from 'lucide-react';
 import amikomLogo from '../../assets/amikom.png';
 import unikaLogo from '../../assets/unika-logo.svg';
@@ -20,6 +20,8 @@ import {
   getAdminMataKuliahListApi,
   createAdminMataKuliahApi,
   plottingAdminDplApi,
+  exportAdminMataKuliahApi,
+  importAdminMataKuliahApi,
 } from '../../services/adminService';
 
 const UnikaLogo = ({ size = 26 }) => (
@@ -96,6 +98,80 @@ const KaprodiDashboard = () => {
   const [showCreateMatkulModal, setShowCreateMatkulModal] = useState(false);
   const [matkulForm, setMatkulForm] = useState({ kode_mk: '', nama_mk: '', sks: 4, semester: 6, cpmk: '', kategori: 'Wajib Prodi' });
   const [isSubmittingMatkul, setIsSubmittingMatkul] = useState(false);
+
+  // Pagination & Export/Import States Matkul
+  const [matkulPage, setMatkulPage] = useState(1);
+  const MATKUL_PER_PAGE = 10;
+
+  const fileInputRef = useRef(null);
+  const [isExportingMatkul, setIsExportingMatkul] = useState(false);
+  const [isImportingMatkul, setIsImportingMatkul] = useState(false);
+
+  // Export Matkul Handler
+  const handleExportMatkul = async () => {
+    setIsExportingMatkul(true);
+    try {
+      const res = await exportAdminMataKuliahApi(token, 'excel');
+      if (res.success) showToast('✅ Katalog Mata Kuliah & CPMK berhasil di-export ke Excel (.xlsx)! 📊');
+      else showToast('❌ Gagal export data katalog');
+    } catch (err) {
+      showToast('❌ Terjadi kesalahan saat memproses export');
+    } finally {
+      setIsExportingMatkul(false);
+    }
+  };
+
+  // Import Matkul File Change Handler
+  const handleFileImportChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsImportingMatkul(true);
+    try {
+      const text = await file.text();
+      let parsedItems = [];
+
+      if (file.name.endsWith('.json')) {
+        parsedItems = JSON.parse(text);
+      } else {
+        // Parse CSV text (Kode MK, Nama MK, SKS, Semester, CPMK, Kategori)
+        const lines = text.split('\n').filter(l => l.trim());
+        const startIdx = lines[0].toLowerCase().includes('kode') ? 1 : 0;
+        for (let i = startIdx; i < lines.length; i++) {
+          const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+          if (cols.length >= 2) {
+            parsedItems.push({
+              kode_mk: cols[0],
+              nama_mk: cols[1],
+              sks: Number(cols[2]) || 4,
+              semester: Number(cols[3]) || 6,
+              cpmk: cols[4] || `CPMK-${cols[0]}: Pembelajaran ${cols[1]}`,
+              kategori: cols[5] || 'Wajib Prodi'
+            });
+          }
+        }
+      }
+
+      if (parsedItems.length === 0) {
+        showToast('⚠️ Format file tidak valid atau data kosong. Gunakan JSON / CSV!');
+        return;
+      }
+
+      const res = await importAdminMataKuliahApi(token, parsedItems);
+      if (res.success) {
+        showToast(`🎉 Berhasil mengimpor ${res.data?.total_imported || parsedItems.length} Mata Kuliah & CPMK ke Katalog!`);
+        fetchMatkulList();
+      } else {
+        showToast(`❌ Gagal import: ${res.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('❌ Terjadi kesalahan saat membaca file import');
+    } finally {
+      setIsImportingMatkul(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Fetch Functions
   const fetchStats = useCallback(async () => {
@@ -1177,104 +1253,245 @@ const KaprodiDashboard = () => {
         )}
 
         {/* TAB 4: MATA KULIAH & CPMK */}
-        {activeNavTab === 'matkul' && (
-          <>
-            <section className="welcome-section" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 className="welcome-title">Master Data Katalog Mata Kuliah & CPMK</h2>
-                <p className="welcome-desc">
-                  Kelola katalog mata kuliah prodi Informatika dan deskripsi CPMK untuk rekomendasi AI konversi SKS.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCreateMatkulModal(true)}
-                style={{
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '12px 20px',
-                  borderRadius: '14px',
-                  fontWeight: '800',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)',
-                  cursor: 'pointer'
-                }}
-              >
-                <Plus size={18} /> Tambah MK Baru
-              </button>
-            </section>
+        {activeNavTab === 'matkul' && (() => {
+          const defaultMatkulList = [
+            { kode_mk: 'IF101', nama_mk: 'Pemrograman Web Lanjut', sks: 4, cpmk: 'CPMK01-Mahasiswa mampu merancang dan mengimplementasikan aplikasi web tingkat lanjut dengan arsitektur modern', kategori: 'Wajib Prodi' },
+            { kode_mk: 'IF102', nama_mk: 'Rekayasa Perangkat Lunak', sks: 4, cpmk: 'CPMK02-Mahasiswa mampu menerapkan metode rekayasa perangkat lunak, SDLC, dan pengujian sistem', kategori: 'Wajib Prodi' },
+            { kode_mk: 'IF103', nama_mk: 'Manajemen Proyek TI', sks: 3, cpmk: 'CPMK03-Mahasiswa mampu mengelola proyek TI, estimasi resources, risiko, dan manajemen tim Agile', kategori: 'Wajib Prodi' },
+            { kode_mk: 'IF104', nama_mk: 'Kecerdasan Buatan', sks: 3, cpmk: 'CPMK04-Mahasiswa mampu menerapkan konsep kecerdasan buatan, machine learning, dan pemrosesan data', kategori: 'Wajib Prodi' },
+            { kode_mk: 'IF105', nama_mk: 'Magang Industri / MBKM', sks: 6, cpmk: 'CPMK05-Mahasiswa mampu mengaplikasikan ilmu komputer secara nyata dalam lingkungan kerja industri magang', kategori: 'Wajib Prodi' },
+            { kode_mk: 'ST044', nama_mk: 'Metode Numerik', sks: 4, cpmk: 'CPMK06-Mahasiswa mampu memecahkan persamaan matematika komputasional dengan metode numerik', kategori: 'Wajib Prodi' },
+            { kode_mk: 'ST050', nama_mk: 'Manajemen Strategik', sks: 2, cpmk: 'CPMK07-Mahasiswa mampu merumuskan strategi bisnis IT dan alokasi sumber daya teknologi informasi', kategori: 'Wajib Prodi' },
+            { kode_mk: 'ST055', nama_mk: 'Arsitektur REST API & Cloud Computing', sks: 4, cpmk: 'CPMK08-Mahasiswa mampu merancang arsitektur REST API, microservices, dan deployment cloud server', kategori: 'Wajib Prodi' },
+            { kode_mk: 'ST084', nama_mk: 'Pemrograman Web', sks: 4, cpmk: 'CPMK09-Mahasiswa mampu merancang web app responsif berbasis HTML, CSS, JavaScript, dan backend API', kategori: 'Wajib Prodi' },
+            { kode_mk: 'ST087', nama_mk: 'Manajemen Sumber Daya IT', sks: 2, cpmk: 'CPMK10-Mahasiswa mampu mengelola aset, SDM IT, dan tata kelola teknologi informasi organisasi', kategori: 'Wajib Prodi' },
+            { kode_mk: 'ST091', nama_mk: 'Analisis dan Desain Sistem Informasi', sks: 4, cpmk: 'CPMK11-Mahasiswa mampu merekayasa perangkat lunak, analisis proses bisnis, dan diagram UML', kategori: 'Wajib Prodi' },
+            { kode_mk: 'ST108', nama_mk: 'E-Commerce', sks: 2, cpmk: 'CPMK12-Mahasiswa mampu membangun platform e-commerce, sistem pembayaran digital, dan keamanan transaksi', kategori: 'Wajib Prodi' }
+          ];
 
-            <section className="main-panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FileText size={20} className="text-primary" />
-                  Katalog Mata Kuliah & CPMK Informatika
-                </h3>
-                <button 
-                  onClick={fetchMatkulList} 
-                  style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <RefreshCcw size={14} /> Refresh Catalog
-                </button>
-              </div>
+          const list = mataKuliahListApi.length > 0 ? mataKuliahListApi : defaultMatkulList;
+          const totalPages = Math.ceil(list.length / MATKUL_PER_PAGE) || 1;
+          const startIndex = (matkulPage - 1) * MATKUL_PER_PAGE;
+          const paginatedList = list.slice(startIndex, startIndex + MATKUL_PER_PAGE);
 
-              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>KODE MK</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>NAMA MATA KULIAH</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>SKS</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>DESKRIPSI CPMK</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>KATEGORI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(mataKuliahListApi.length > 0 ? mataKuliahListApi : [
-                      { kode_mk: 'ST084', nama_mk: 'Pemrograman Web', sks: 4, cpmk: 'CPMK16-Mahasiswa mampu merancang web app responsif berbasis REST API', kategori: 'Wajib Prodi' },
-                      { kode_mk: 'ST116', nama_mk: 'Pemrograman Basis Data', sks: 4, cpmk: 'CPMK15-Mahasiswa mampu mengelola database relasional & SQL query', kategori: 'Wajib Prodi' },
-                      { kode_mk: 'ST091', nama_mk: 'Analisis dan Desain Sistem Informasi', sks: 4, cpmk: 'CPMK11-Mahasiswa mampu merekayasa perangkat lunak dan analisis sistem', kategori: 'Wajib Prodi' },
-                      { kode_mk: 'ST055', nama_mk: 'Kecerdasan Buatan (Artificial Intelligence)', sks: 4, cpmk: 'CPMK12-Mahasiswa mampu menerapkan algoritma machine learning', kategori: 'Pilihan' }
-                    ]).map((mk, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '14px', fontSize: '13px', fontWeight: '800', color: '#7e22ce' }}>{mk.kode_mk}</td>
-                        <td style={{ padding: '14px', fontSize: '14px', fontWeight: '700', color: '#1e1b4b' }}>{mk.nama_mk}</td>
-                        <td style={{ padding: '14px', textAlign: 'center' }}>
-                          <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '13px' }}>
-                            {mk.sks} SKS
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px', fontSize: '12px', color: '#475569', maxWidth: '340px' }}>
-                          {mk.cpmk || mk.deskripsi_cpmk || mk.deskripsi || (
-                            {
-                              'IF101': 'CPMK01-Mahasiswa mampu merancang dan mengimplementasikan aplikasi web tingkat lanjut dengan arsitektur modern',
-                              'IF102': 'CPMK02-Mahasiswa mampu menerapkan metode rekayasa perangkat lunak, SDLC, dan pengujian sistem',
-                              'IF103': 'CPMK03-Mahasiswa mampu mengelola proyek TI, estimasi resources, risiko, dan manajemen tim Agile',
-                              'IF104': 'CPMK04-Mahasiswa mampu menerapkan konsep kecerdasan buatan, machine learning, dan pemrosesan data',
-                              'IF105': 'CPMK05-Mahasiswa mampu mengaplikasikan ilmu komputer secara nyata dalam lingkungan kerja industri magang',
-                              'ST044': 'CPMK06-Mahasiswa mampu memecahkan persamaan matematika komputasional dengan metode numerik',
-                              'ST050': 'CPMK07-Mahasiswa mampu merumuskan strategi bisnis IT dan alokasi sumber daya teknologi informasi',
-                              'ST055': 'CPMK08-Mahasiswa mampu merancang arsitektur REST API, microservices, dan deployment cloud server',
-                              'ST084': 'CPMK09-Mahasiswa mampu merancang web app responsif berbasis HTML, CSS, JavaScript, dan backend API',
-                              'ST087': 'CPMK10-Mahasiswa mampu mengelola aset, SDM IT, dan tata kelola teknologi informasi organisasi',
-                              'ST091': 'CPMK11-Mahasiswa mampu merekayasa perangkat lunak, analisis proses bisnis, dan diagram UML',
-                              'ST108': 'CPMK12-Mahasiswa mampu membangun platform e-commerce, sistem pembayaran digital, dan keamanan transaksi'
-                            }[mk.kode_mk] || `CPMK-${mk.kode_mk}: Mahasiswa mampu menguasai kompetensi dasar dan terapan ${mk.nama_mk}`
-                          )}
-                        </td>
-                        <td style={{ padding: '14px', fontSize: '12px', color: '#64748b' }}>{mk.kategori || 'Wajib Prodi'}</td>
+          return (
+            <>
+              {/* Hidden File Input for Excel/JSON Import */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".json,.csv,.xlsx"
+                onChange={handleFileImportChange}
+                style={{ display: 'none' }}
+              />
+
+              <section className="welcome-section" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2 className="welcome-title">Master Data Katalog Mata Kuliah & CPMK</h2>
+                  <p className="welcome-desc">
+                    Kelola katalog mata kuliah prodi Informatika dan deskripsi CPMK untuk rekomendasi AI konversi SKS.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isImportingMatkul}
+                    style={{
+                      background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '12px 18px',
+                      borderRadius: '14px',
+                      fontWeight: '800',
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 6px 18px rgba(2, 132, 199, 0.3)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Upload size={16} /> {isImportingMatkul ? 'Mengimpor...' : 'Import Excel / CSV'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleExportMatkul}
+                    disabled={isExportingMatkul}
+                    style={{
+                      background: 'linear-gradient(135deg, #7e22ce 0%, #581c87 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '12px 18px',
+                      borderRadius: '14px',
+                      fontWeight: '800',
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 6px 18px rgba(126, 34, 206, 0.3)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Download size={16} /> {isExportingMatkul ? 'Mengunduh...' : 'Export Excel'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateMatkulModal(true)}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '12px 20px',
+                      borderRadius: '14px',
+                      fontWeight: '800',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Plus size={18} /> Tambah MK Baru
+                  </button>
+                </div>
+              </section>
+
+              <section className="main-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FileText size={20} className="text-primary" />
+                    Katalog Mata Kuliah & CPMK Informatika (Halaman {matkulPage} dari {totalPages})
+                  </h3>
+                  <button 
+                    onClick={fetchMatkulList} 
+                    style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <RefreshCcw size={14} /> Refresh Catalog
+                  </button>
+                </div>
+
+                <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>KODE MK</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>NAMA MATA KULIAH</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>SKS</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>DESKRIPSI CPMK</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>KATEGORI</th>
                       </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedList.map((mk, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '14px', fontSize: '13px', fontWeight: '800', color: '#7e22ce' }}>{mk.kode_mk}</td>
+                          <td style={{ padding: '14px', fontSize: '14px', fontWeight: '700', color: '#1e1b4b' }}>{mk.nama_mk}</td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '13px' }}>
+                              {mk.sks} SKS
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px', fontSize: '12px', color: '#475569', maxWidth: '380px', lineHeight: '1.5' }}>
+                            {mk.cpmk || mk.deskripsi_cpmk || mk.deskripsi || (
+                              {
+                                'IF101': 'CPMK01-Mahasiswa mampu merancang dan mengimplementasikan aplikasi web tingkat lanjut dengan arsitektur modern',
+                                'IF102': 'CPMK02-Mahasiswa mampu menerapkan metode rekayasa perangkat lunak, SDLC, dan pengujian sistem',
+                                'IF103': 'CPMK03-Mahasiswa mampu mengelola proyek TI, estimasi resources, risiko, dan manajemen tim Agile',
+                                'IF104': 'CPMK04-Mahasiswa mampu menerapkan konsep kecerdasan buatan, machine learning, dan pemrosesan data',
+                                'IF105': 'CPMK05-Mahasiswa mampu mengaplikasikan ilmu komputer secara nyata dalam lingkungan kerja industri magang',
+                                'ST044': 'CPMK06-Mahasiswa mampu memecahkan persamaan matematika komputasional dengan metode numerik',
+                                'ST050': 'CPMK07-Mahasiswa mampu merumuskan strategi bisnis IT dan alokasi sumber daya teknologi informasi',
+                                'ST055': 'CPMK08-Mahasiswa mampu merancang arsitektur REST API, microservices, dan deployment cloud server',
+                                'ST084': 'CPMK09-Mahasiswa mampu merancang web app responsif berbasis HTML, CSS, JavaScript, dan backend API',
+                                'ST087': 'CPMK10-Mahasiswa mampu mengelola aset, SDM IT, dan tata kelola teknologi informasi organisasi',
+                                'ST091': 'CPMK11-Mahasiswa mampu merekayasa perangkat lunak, analisis proses bisnis, dan diagram UML',
+                                'ST108': 'CPMK12-Mahasiswa mampu membangun platform e-commerce, sistem pembayaran digital, dan keamanan transaksi'
+                              }[mk.kode_mk] || `CPMK-${mk.kode_mk}: Mahasiswa mampu menguasai kompetensi dasar dan terapan ${mk.nama_mk}`
+                            )}
+                          </td>
+                          <td style={{ padding: '14px', fontSize: '12px', color: '#64748b' }}>{mk.kategori || 'Wajib Prodi'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* PAGINASI MODERN PER 10 MATKUL */}
+                <div style={{
+                  display: 'flex',
+                  justify: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '16px',
+                  paddingTop: '12px',
+                  borderTop: '1px solid #f1f5f9'
+                }}>
+                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>
+                    Menampilkan <strong>{Math.min(startIndex + 1, list.length)}</strong> - <strong>{Math.min(startIndex + MATKUL_PER_PAGE, list.length)}</strong> dari <strong>{list.length}</strong> Mata Kuliah
+                  </span>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setMatkulPage(prev => Math.max(prev - 1, 1))}
+                      disabled={matkulPage === 1}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: matkulPage === 1 ? '#f8fafc' : '#ffffff',
+                        color: matkulPage === 1 ? '#94a3b8' : '#475569',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: matkulPage === 1 ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      ‹ Sebelumnya
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
+                      <button
+                        key={pNum}
+                        onClick={() => setMatkulPage(pNum)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          border: matkulPage === pNum ? 'none' : '1px solid #cbd5e1',
+                          backgroundColor: matkulPage === pNum ? '#9333ea' : '#ffffff',
+                          color: matkulPage === pNum ? '#ffffff' : '#475569',
+                          fontWeight: '800',
+                          fontSize: '13px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {pNum}
+                      </button>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </>
-        )}
+
+                    <button
+                      onClick={() => setMatkulPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={matkulPage === totalPages}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: matkulPage === totalPages ? '#f8fafc' : '#ffffff',
+                        color: matkulPage === totalPages ? '#94a3b8' : '#475569',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: matkulPage === totalPages ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      Berikutnya ›
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </>
+          );
+        })()}
 
         {/* TAB 5: MAHASISWA KONVERSI */}
         {activeNavTab === 'mahasiswa' && (
