@@ -384,14 +384,26 @@ const DosenDashboard = () => {
                       </button>
                     </div>
 
-                    {/* Ringkasan Mahasiswa */}
+                    {/* Ringkasan Mahasiswa — Table Layout */}
                     <div style={{
                       background: '#fff', borderRadius: '20px', padding: '24px',
                       border: '1px solid #f1f5f9', boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
                     }}>
-                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Users size={18} color="#B432F2" />
-                        Ringkasan Mahasiswa Semester {stats?.filter_semester || 6}
+                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Users size={18} color="#B432F2" />
+                          Ringkasan Mahasiswa Semester {stats?.filter_semester || 6}
+                        </span>
+                        <button
+                          onClick={() => setActiveTab('mahasiswa')}
+                          style={{
+                            background: 'none', border: 'none', color: '#B432F2',
+                            fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '4px'
+                          }}
+                        >
+                          Lihat Semua →
+                        </button>
                       </div>
                       {(stats?.mahasiswa_ampu_ringkasan || []).length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
@@ -399,33 +411,47 @@ const DosenDashboard = () => {
                           <div style={{ fontSize: '14px', fontWeight: '600' }}>Belum ada mahasiswa bimbingan</div>
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          {(stats.mahasiswa_ampu_ringkasan || []).map((m, i) => (
-                            <div key={i} style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                              padding: '12px 16px', borderRadius: '12px',
-                              background: '#fafbff', border: '1px solid #f1f5f9'
-                            }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{
-                                  width: '36px', height: '36px', borderRadius: '10px',
-                                  background: 'linear-gradient(135deg, #f3e8ff, #ede9fe)',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  color: '#B432F2', fontWeight: '800', fontSize: '13px'
-                                }}>
-                                  {(m.nama || '?')[0]}
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{m.nama}</div>
-                                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>{m.nim} • {m.prodi}</div>
-                                </div>
-                              </div>
-                              <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: '12px', color: '#64748b' }}>{m.nama_instansi || '-'}</div>
-                                <div style={{ fontSize: '11px', color: '#94a3b8' }}>{m.posisi || '-'}</div>
-                              </div>
-                            </div>
-                          ))}
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '2px solid #f1f5f9', color: '#64748b' }}>
+                                <th style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>NIM</th>
+                                <th style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>Mahasiswa</th>
+                                <th style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>Instansi</th>
+                                <th style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>Posisi</th>
+                                <th style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px', textAlign: 'right' }}>Aksi</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(stats.mahasiswa_ampu_ringkasan || []).map((m, i) => (
+                                <tr key={i} style={{ borderBottom: '1px solid #f8fafc' }}>
+                                  <td style={{ padding: '12px', fontWeight: '800', color: '#1e293b' }}>{m.nim}</td>
+                                  <td style={{ padding: '12px' }}>
+                                    <div style={{ fontWeight: '700', color: '#1e293b' }}>{m.nama}</div>
+                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{m.prodi}</div>
+                                  </td>
+                                  <td style={{ padding: '12px', color: '#475569', fontWeight: '600' }}>{m.nama_instansi || '-'}</td>
+                                  <td style={{ padding: '12px', color: '#64748b' }}>{m.posisi || '-'}</td>
+                                  <td style={{ padding: '12px', textAlign: 'right' }}>
+                                    <button
+                                      onClick={() => {
+                                        setActiveTab('mahasiswa');
+                                        fetchMahasiswaDetail(m.nim);
+                                      }}
+                                      style={{
+                                        padding: '6px 14px', borderRadius: '8px',
+                                        background: '#3b82f6', color: '#fff',
+                                        border: 'none', fontWeight: '700', fontSize: '12px',
+                                        cursor: 'pointer', boxShadow: '0 2px 6px rgba(59,130,246,0.3)'
+                                      }}
+                                    >
+                                      View
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       )}
                     </div>
@@ -497,7 +523,7 @@ const DosenDashboard = () => {
                 </select>
               </div>
 
-              {/* List */}
+              {/* List — Modern Table View */}
               {isLoadingList ? (
                 <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
                   <RefreshCcw size={28} style={{ animation: 'spin 0.8s linear infinite', marginBottom: '12px' }} />
@@ -512,69 +538,115 @@ const DosenDashboard = () => {
                   <div style={{ fontSize: '16px', fontWeight: '700', color: '#94a3b8' }}>Belum ada mahasiswa bimbingan</div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {mahasiswaList.map((mhs, idx) => {
-                    const konvStatus = mhs.konversi_sks?.status_konversi || '';
-                    const st = statusStyle(konvStatus);
-                    return (
-                      <div key={mhs.nim || idx} style={{
-                        background: '#fff', borderRadius: '18px', padding: '20px 24px',
-                        border: '1px solid #f1f5f9', boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        gap: '16px', flexWrap: 'wrap',
-                        borderLeft: `4px solid ${st.color}`
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
-                          <div style={{
-                            width: '48px', height: '48px', borderRadius: '14px',
-                            background: 'linear-gradient(135deg, #f3e8ff, #ede9fe)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontWeight: '900', fontSize: '18px', color: '#B432F2', flexShrink: 0
-                          }}>
-                            {(mhs.nama || '?')[0]}
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b' }}>{mhs.nama}</div>
-                            <div style={{ fontSize: '12px', color: '#64748b' }}>{mhs.nim} • {mhs.prodi} • Angkatan {mhs.angkatan}</div>
-                            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
-                              🏢 {mhs.magang?.nama_instansi || '-'} — {mhs.magang?.posisi || '-'}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                          {/* Status Badge */}
-                          <span style={{
-                            padding: '5px 12px', borderRadius: '8px',
-                            fontSize: '11px', fontWeight: '700',
-                            background: st.bg, color: st.color, border: `1px solid ${st.border}`
-                          }}>
-                            {konvStatus || 'Belum Konversi'}
-                          </span>
-                          <span style={{
-                            padding: '5px 12px', borderRadius: '8px',
-                            fontSize: '11px', fontWeight: '700',
-                            background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0'
-                          }}>
-                            {mhs.konversi_sks?.total_matkul || 0} MK • {mhs.konversi_sks?.total_sks || 0} SKS
-                          </span>
-                          {/* Detail Button */}
-                          <button
-                            onClick={() => fetchMahasiswaDetail(mhs.nim)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: '6px',
-                              padding: '8px 16px', borderRadius: '10px',
-                              background: 'linear-gradient(135deg, #B432F2, #7c3aed)',
-                              color: '#fff', fontWeight: '700', fontSize: '12px',
-                              border: 'none', cursor: 'pointer',
-                              boxShadow: '0 2px 8px rgba(180,50,242,0.25)'
-                            }}
-                          >
-                            <Eye size={13} /> Detail & Review
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div style={{
+                  background: '#fff', borderRadius: '18px', border: '1px solid #e9e2f2',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden'
+                }}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
+                          <th style={{ padding: '14px 18px', fontWeight: '800', fontSize: '12px', width: '130px' }}>NIM</th>
+                          <th style={{ padding: '14px 18px', fontWeight: '800', fontSize: '12px' }}>Mahasiswa</th>
+                          <th style={{ padding: '14px 18px', fontWeight: '800', fontSize: '12px' }}>Instansi & Posisi</th>
+                          <th style={{ padding: '14px 18px', fontWeight: '800', fontSize: '12px', textAlign: 'center' }}>Konversi SKS</th>
+                          <th style={{ padding: '14px 18px', fontWeight: '800', fontSize: '12px', textAlign: 'center' }}>Status Konversi</th>
+                          <th style={{ padding: '14px 18px', fontWeight: '800', fontSize: '12px', textAlign: 'right' }}>Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mahasiswaList.map((mhs, idx) => {
+                          const konvStatus = mhs.konversi_sks?.status_konversi || '';
+                          const st = statusStyle(konvStatus);
+                          return (
+                            <tr
+                              key={mhs.nim || idx}
+                              style={{
+                                borderBottom: '1px solid #f1f5f9',
+                                background: idx % 2 === 0 ? '#ffffff' : '#fcfaff',
+                                transition: 'background 0.15s ease'
+                              }}
+                            >
+                              {/* NIM */}
+                              <td style={{ padding: '16px 18px', fontWeight: '900', color: '#1e293b', whiteSpace: 'nowrap' }}>
+                                {mhs.nim}
+                              </td>
+
+                              {/* Mahasiswa */}
+                              <td style={{ padding: '16px 18px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <div style={{
+                                    width: '38px', height: '38px', borderRadius: '10px',
+                                    background: 'linear-gradient(135deg, #f3e8ff, #ede9fe)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontWeight: '800', fontSize: '15px', color: '#B432F2', flexShrink: 0
+                                  }}>
+                                    {(mhs.nama || '?')[0]}
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>{mhs.nama}</div>
+                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                      {mhs.prodi} • Angkatan {mhs.angkatan}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Instansi & Posisi */}
+                              <td style={{ padding: '16px 18px' }}>
+                                <div style={{ fontWeight: '700', color: '#334155', fontSize: '13px' }}>
+                                  🏢 {mhs.magang?.nama_instansi || '-'}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                                  {mhs.magang?.posisi || '-'}
+                                </div>
+                              </td>
+
+                              {/* Konversi SKS */}
+                              <td style={{ padding: '16px 18px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                <span style={{
+                                  padding: '5px 12px', borderRadius: '8px',
+                                  fontSize: '11px', fontWeight: '700',
+                                  background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0'
+                                }}>
+                                  {mhs.konversi_sks?.total_matkul || 0} MK • {mhs.konversi_sks?.total_sks || 0} SKS
+                                </span>
+                              </td>
+
+                              {/* Status Konversi */}
+                              <td style={{ padding: '16px 18px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                <span style={{
+                                  padding: '6px 14px', borderRadius: '8px',
+                                  fontSize: '11px', fontWeight: '800',
+                                  background: st.bg, color: st.color, border: `1px solid ${st.border}`
+                                }}>
+                                  {konvStatus || 'Belum Konversi'}
+                                </span>
+                              </td>
+
+                              {/* Aksi Button */}
+                              <td style={{ padding: '16px 18px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                <button
+                                  onClick={() => fetchMahasiswaDetail(mhs.nim)}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                    padding: '8px 16px', borderRadius: '9px',
+                                    background: '#3b82f6', color: '#fff',
+                                    fontWeight: '700', fontSize: '12px',
+                                    border: 'none', cursor: 'pointer',
+                                    boxShadow: '0 2px 8px rgba(59,130,246,0.35)',
+                                    transition: 'transform 0.1s ease'
+                                  }}
+                                >
+                                  <Eye size={13} /> View
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
