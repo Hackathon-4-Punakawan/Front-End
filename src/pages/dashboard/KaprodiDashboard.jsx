@@ -1889,7 +1889,7 @@ const KaprodiDashboard = () => {
             { nim: '21.11.4011', nama: 'Dimas Anggara', magang: { nama_instansi: 'PT Xendit Finance Indonesia', posisi: 'API Integration Specialist' }, dpl: { nama_dpl: 'Widodo, M.Kom' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } }
           ];
 
-          const rawList = mahasiswaListApi.length > 0 ? mahasiswaListApi : defaultMhsList;
+          const rawList = (Array.isArray(mahasiswaListApi) && mahasiswaListApi.length > 0) ? mahasiswaListApi : defaultMhsList;
           const list = rawList.map((mhs, idx) => {
             const fb = defaultMhsList[idx % defaultMhsList.length] || {};
             return {
@@ -1911,7 +1911,8 @@ const KaprodiDashboard = () => {
           });
 
           const totalPages = Math.ceil(list.length / MHS_PER_PAGE) || 1;
-          const startIndex = (mhsPage - 1) * MHS_PER_PAGE;
+          const safeMhsPage = Math.min(Math.max(mhsPage || 1, 1), totalPages);
+          const startIndex = (safeMhsPage - 1) * MHS_PER_PAGE;
           const paginatedList = list.slice(startIndex, startIndex + MHS_PER_PAGE);
 
           return (
