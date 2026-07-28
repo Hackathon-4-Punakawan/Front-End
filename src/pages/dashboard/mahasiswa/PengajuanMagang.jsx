@@ -4,6 +4,12 @@ import SuratPengantarForm from './SuratPengantarForm';
 import DosenPembimbingForm from './DosenPembimbingForm';
 import StatusKonversi from './StatusKonversi';
 import { 
+  generateSuratPengantarMagangPdf, 
+  generateSuratPrasurveyMagangPdf, 
+  generateSuratPenunjukanDplPdf, 
+  generateTranskripKonversiPdf 
+} from '../../../utils/pdfGenerator';
+import { 
   getPengajuanFikHelperInfoApi,
   submitPengajuanFikApi,
   getMyPengajuanFikStatusApi
@@ -1056,7 +1062,81 @@ const PengajuanMagang = ({
                     )}
                   </div>
                   
-                  <div className="detail-modal-footer">
+                  <div className="detail-modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {selectedDetail.type === 'surat_pengantar' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => generateSuratPengantarMagangPdf({
+                              nomorSurat: '55/FIK-IF/AMIKOM/MAGANG/VI/2026',
+                              tanggalSurat: new Date().toISOString(),
+                              namaMitra: selectedDetail.data.namaInstansi || approvedProposal?.namaMitra || 'PT GoTo Gojek Tokopedia Tbk',
+                              namaMahasiswa: currentUser?.name || 'Budi Santoso',
+                              nimMahasiswa: currentUser?.identity || '21.11.4001',
+                              prodi: 'S1 Informatika',
+                              tanggalMulai: selectedDetail.data.tanggalMulai || '1 Februari 2026',
+                              tanggalSelesai: selectedDetail.data.tanggalSelesai || '31 Juli 2026'
+                            })}
+                            style={{ background: 'linear-gradient(135deg, #a855f7, #9333ea)', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            <Download size={14} /> Cetak PDF Surat Pengantar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => generateSuratPrasurveyMagangPdf({
+                              nomorSurat: '84/FIK-IF/AMIKOM/PSM/V/2026',
+                              tanggalSurat: new Date().toISOString(),
+                              namaMitra: selectedDetail.data.namaInstansi || 'PT Bank Central Asia Tbk',
+                              namaMahasiswa: currentUser?.name || 'Budi Santoso',
+                              nimMahasiswa: currentUser?.identity || '21.11.4001',
+                              prodi: 'S1 Informatika'
+                            })}
+                            style={{ background: '#f0f9ff', border: '1px solid #38bdf8', color: '#0369a1', padding: '8px 14px', borderRadius: '8px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            <Download size={14} /> Cetak PDF Prasurvey
+                          </button>
+                        </>
+                      )}
+
+                      {selectedDetail.type === 'dosen_pembimbing' && (
+                        <button
+                          type="button"
+                          onClick={() => generateSuratPenunjukanDplPdf({
+                            nomorSurat: '45/FIK-IF/AMIKOM/STDM/VI/2026',
+                            tanggalSurat: new Date().toISOString(),
+                            namaDosen: selectedDetail.data.namaDPL || 'Dr. Indah Susanti, M.Kom',
+                            namaMahasiswa: currentUser?.name || 'Budi Santoso',
+                            nimMahasiswa: currentUser?.identity || '21.11.4001',
+                            prodi: 'S1 Informatika',
+                            namaInstansi: approvedProposal?.namaMitra || 'PT GoTo Gojek Tokopedia Tbk',
+                            periodeMulai: '1 Februari 2026',
+                            durasi: '6 Bulan'
+                          })}
+                          style={{ background: 'linear-gradient(135deg, #a855f7, #9333ea)', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Download size={14} /> Cetak PDF SK DPL
+                        </button>
+                      )}
+
+                      {(selectedDetail.type === 'konversi_sks' || selectedDetail.type === 'proposal' || selectedDetail.type === 'id_magang') && (
+                        <button
+                          type="button"
+                          onClick={() => generateTranskripKonversiPdf({
+                            namaMahasiswa: currentUser?.name || 'Budi Santoso',
+                            nimMahasiswa: currentUser?.identity || '21.11.4001',
+                            prodi: 'S1 Informatika',
+                            idMagang: idMagangValue || 'FIK6206030',
+                            namaInstansi: approvedProposal?.namaMitra || 'PT GoTo Gojek Tokopedia Tbk',
+                            dpl: dosenPembimbing?.namaDPL || 'Dr. Indah Susanti, M.Kom',
+                            courses: selectedDetail.data.courses || []
+                          })}
+                          style={{ background: 'linear-gradient(135deg, #a855f7, #9333ea)', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Download size={14} /> Cetak PDF Dokumen Resmi
+                        </button>
+                      )}
+                    </div>
                     <button className="detail-modal-close-btn" onClick={() => setSelectedDetail(null)}>Tutup Rincian</button>
                   </div>
                 </div>
