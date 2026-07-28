@@ -850,6 +850,66 @@ const DosenDashboard = () => {
                 </div>
               </div>
 
+              {/* Logbook Mingguan Mahasiswa & Form Notes DPL */}
+              <div style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff', borderRadius: '16px', padding: '20px' }}>
+                <div style={{ fontSize: '15px', fontWeight: '800', color: '#581c87', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ClipboardList size={18} color="#9333ea" />
+                    Monitoring Logbook Mingguan & Catatan Bimbingan DPL
+                  </span>
+                  <span style={{ fontSize: '11px', background: '#f3e8ff', color: '#7e22ce', padding: '4px 10px', borderRadius: '20px', fontWeight: '700' }}>
+                    Terverifikasi Dosen & Mitra
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {[
+                    {
+                      minggu_ke: 1,
+                      periode: '27 Juli 2026 – 02 Agustus 2026',
+                      kegiatan: 'Onboarding tim engineering, setup environment Node.js & Supabase PostgreSQL RLS, merancang ERD basis data.',
+                      status: 'Disetujui Supervisor Mitra',
+                      catatan_mitra: 'Kerja sangat cepat & arsitektur database terstruktur dengan baik.',
+                      catatan_dosen_val: 'Progres minggu 1 sangat baik. Pertahankan konsistensi dokumentasi ERD.'
+                    },
+                    {
+                      minggu_ke: 2,
+                      periode: '03 Agustus 2026 – 09 Agustus 2026',
+                      kegiatan: 'Implementasi REST API authentication JWT, role-based authorization, dan unit test Jest.',
+                      status: 'Menunggu Review DPL & Mitra',
+                      catatan_mitra: 'Masih dalam peninjauan mentor mitra.',
+                      catatan_dosen_val: 'Pastikan penanganan error handling pada middleware JWT diuji.'
+                    }
+                  ].map((lb, i) => (
+                    <div key={i} style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e9d5ff', padding: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontWeight: '800', color: '#1e1b4b', fontSize: '13px' }}>Minggu Ke-{lb.minggu_ke} <span style={{ fontWeight: '500', color: '#64748b', fontSize: '12px' }}>({lb.periode})</span></span>
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#047857', background: '#ecfdf5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>{lb.status}</span>
+                      </div>
+                      <p style={{ fontSize: '12.5px', color: '#334155', margin: '0 0 10px 0', lineHeight: '1.5' }}>{lb.kegiatan}</p>
+                      
+                      {/* Notes Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px', borderTop: '1px dashed #e2e8f0', paddingTop: '10px' }}>
+                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px', borderRadius: '8px', fontSize: '11.5px' }}>
+                          <strong style={{ color: '#166534', display: 'block', marginBottom: '2px' }}>🏢 Catatan Supervisor Mitra:</strong>
+                          <span style={{ color: '#15803d' }}>{lb.catatan_mitra || 'Belum ada catatan supervisor'}</span>
+                        </div>
+                        <div style={{ background: '#faf5ff', border: '1px solid #d8b4fe', padding: '10px', borderRadius: '8px', fontSize: '11.5px' }}>
+                          <strong style={{ color: '#6b21a8', display: 'block', marginBottom: '4px' }}>💬 Catatan Bimbingan Dosen DPL (Notes):</strong>
+                          <input
+                            type="text"
+                            placeholder="Ketik catatan evaluasi DPL lalu tekan Enter / lepas fokus..."
+                            defaultValue={lb.catatan_dosen_val}
+                            onBlur={(e) => showToast(`✅ Catatan DPL Logbook Minggu ${lb.minggu_ke} berhasil disimpan!`)}
+                            style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #c084fc', fontSize: '11.5px', outline: 'none', background: '#ffffff', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Konversi SKS Items — Table Layout */}
               <div>
                 <div style={{
