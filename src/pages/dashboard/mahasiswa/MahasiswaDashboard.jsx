@@ -10,6 +10,7 @@ import { getMyProposalStatusApi } from '../../../services/proposalMagangService'
 import { getMySuratPengantarStatusApi } from '../../../services/suratPengantarService';
 import { getMyPengajuanDplStatusApi } from '../../../services/pengajuanDplService';
 import { getMyKonversiStatusApi } from '../../../services/konversiMatkulService';
+import { submitSuratAkhirApi, getMySuratAkhirStatusApi } from '../../../services/suratAkhirService';
 import {
   LogOut,
   LayoutDashboard,
@@ -78,6 +79,7 @@ const MahasiswaDashboard = () => {
 
   // State for Surat Akhir submitted in Magang tab
   const [suratAkhirSubmitted, setSuratAkhirSubmitted] = useState(false);
+  const [isSubmittingSuratAkhir, setIsSubmittingSuratAkhir] = useState(false);
 
   // Full Mahasiswa Dashboard Backend API state
   const [dashboardData, setDashboardData] = useState(null);
@@ -849,21 +851,45 @@ const MahasiswaDashboard = () => {
                         </div>
                       </div>
 
-                      {suratAkhirSubmitted ? (
-                        <div style={{ background: '#fdfaee', border: '1px dashed #fcd34d', borderRadius: '12px', padding: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontSize: '12.5px', fontWeight: '700', justifyContent: 'center' }}>
-                          <Clock size={16} />
-                          <span>Pengajuan Surat Akhir Sedang Diproses Dosen/Fakultas</span>
+                      {suratAkhirSubmitted || dashboardData?.surat_akhir_terima_kasih?.is_submitted ? (
+                        <div style={{ background: '#ecfdf5', border: '1px dashed #a7f3d0', borderRadius: '12px', padding: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontSize: '12.5px', fontWeight: '700', justifyContent: 'center' }}>
+                          <CheckCircle2 size={16} />
+                          <span>Surat Akhir & Terima Kasih Telah Diajukan ke Mitra</span>
                         </div>
                       ) : (
                         <button 
                           className="add-dashed-btn" 
-                          onClick={() => {
-                            setSuratAkhirSubmitted(true);
-                            triggerAlert('Pengajuan Berhasil', 'Surat Akhir dan Ucapan Terima Kasih Anda berhasil diajukan dan sedang dalam proses verifikasi Fakultas!', 'success');
+                          disabled={isSubmittingSuratAkhir}
+                          onClick={async () => {
+                            setIsSubmittingSuratAkhir(true);
+                            try {
+                              const res = await submitSuratAkhirApi(token, {
+                                id_magang: idMagangValue || 'FIK6199373',
+                                tanggal_mulai_magang: '01 Agustus 2026',
+                                tanggal_berakhir_magang: '31 Januari 2027',
+                                periode_magang: '6 Bulan',
+                              });
+                              if (res.success) {
+                                setSuratAkhirSubmitted(true);
+                                triggerAlert(
+                                  'Pengajuan Berhasil Terkirim',
+                                  'Surat Akhir & Ucapan Terima Kasih FIK berhasil diajukan! Berkas resmi telah otomatis dikirim ke Dashboard Mitra Industri untuk penilaian akhir.',
+                                  'success'
+                                );
+                                const resDash = await getMahasiswaDashboardApi(token);
+                                if (resDash.success && resDash.data) setDashboardData(resDash.data);
+                              } else {
+                                triggerAlert('Gagal Mengajukan', res.message || 'Terjadi kesalahan.', 'error');
+                              }
+                            } catch (err) {
+                              triggerAlert('Gagal Mengajukan', 'Terjadi kesalahan server.', 'error');
+                            } finally {
+                              setIsSubmittingSuratAkhir(false);
+                            }
                           }}
                         >
                           <Plus size={16} />
-                          <span>Kirim Pengajuan Surat Akhir & Ucapan Terima Kasih</span>
+                          <span>{isSubmittingSuratAkhir ? 'Mengirim Pengajuan...' : '+ Kirim Pengajuan Surat Akhir & Ucapan Terima Kasih'}</span>
                         </button>
                       )}
                     </div>
