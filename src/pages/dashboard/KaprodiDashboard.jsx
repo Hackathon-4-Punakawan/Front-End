@@ -188,6 +188,10 @@ const KaprodiDashboard = () => {
     }
   };
 
+  // Pagination & Export States Mahasiswa Konversi
+  const [mhsPage, setMhsPage] = useState(1);
+  const MHS_PER_PAGE = 10;
+
   // Pagination & Export States Dosen DPL
   const [dosenPage, setDosenPage] = useState(1);
   const DOSEN_PER_PAGE = 10;
@@ -1832,83 +1836,189 @@ const KaprodiDashboard = () => {
           );
         })()}
 
-        {/* TAB 5: MAHASISWA KONVERSI */}
-        {activeNavTab === 'mahasiswa' && (
-          <>
-            <section className="welcome-section" style={{ marginBottom: '24px' }}>
-              <h2 className="welcome-title">Daftar & Monitoring Mahasiswa Konversi</h2>
-              <p className="welcome-desc">
-                Pantau daftar seluruh mahasiswa magang, progres 5 step, dan status penetapan DPL pembimbing.
-              </p>
-            </section>
+        {/* TAB: MAHASISWA KONVERSI SKS */}
+        {activeNavTab === 'mahasiswa' && (() => {
+          const defaultMhsList = [
+            { nim: '21.11.4001', nama: 'Budi Santoso', magang: { nama_instansi: 'PT GoTo Gojek Tokopedia Tbk', posisi: 'Fullstack Developer Intern' }, dpl: { nama_dpl: 'Dr. Indah Susanti, M.Kom' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
+            { nim: '21.11.4002', nama: 'Fathur Rahman', magang: { nama_instansi: 'PT Bank Central Asia Tbk', posisi: 'Backend Engineer Intern' }, dpl: { nama_dpl: 'Bambang Kurniawan, M.T.' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
+            { nim: '21.11.4003', nama: 'Ramadhan Kurnia', magang: { nama_instansi: 'PT Bukalapak.com Tbk', posisi: 'Mobile Developer Intern' }, dpl: { nama_dpl: 'Dr. Indah Susanti, M.Kom' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Menunggu Review DPL' } },
+            { nim: '21.11.4004', nama: 'Anisa Rahmawati', magang: { nama_instansi: 'PT Telkom Indonesia (Persero) Tbk', posisi: 'Cloud & DevOps Intern' }, dpl: { nama_dpl: 'Andi Sunyoto, M.Kom.' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
+            { nim: '21.11.4005', nama: 'Daffa Rizky Pratama', magang: { nama_instansi: 'PT Shopee International Indonesia', posisi: 'Frontend Developer Intern' }, dpl: { nama_dpl: 'Dharmawan, M.T.' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
+            { nim: '21.11.4006', nama: 'Siti Nurhaliza', magang: { nama_instansi: 'PT Traveloka Indonesia', posisi: 'UI/UX Designer Intern' }, dpl: { nama_dpl: 'Drs. Kusrini, M.Kom.' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Menunggu Review DPL' } },
+            { nim: '21.11.4007', nama: 'Ahmad Fauzi', magang: { nama_instansi: 'PT Bank Rakyat Indonesia Tbk', posisi: 'AI & Data Science Intern' }, dpl: { nama_dpl: 'Ir. Amiruddin, M.T.' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
+            { nim: '21.11.4008', nama: 'Dewi Lestari', magang: { nama_instansi: 'PT Blibli.com (Global Digital Niaga)', posisi: 'QA & System Analyst' }, dpl: { nama_dpl: 'Niken Hendrakusma, M.Kom' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
+            { nim: '21.11.4009', nama: 'Reza Rahadian', magang: { nama_instansi: 'PT Paragon Technology and Innovation', posisi: 'Software Architecture Intern' }, dpl: { nama_dpl: 'Romi Satria Wahono, Ph.D.' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
+            { nim: '21.11.4010', nama: 'Nadia Safitri', magang: { nama_instansi: 'PT Indonesia Indikator (Datamining)', posisi: 'NLP Specialist Intern' }, dpl: { nama_dpl: 'Fajar Masya, M.T.' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Menunggu Review DPL' } },
+            { nim: '21.11.4011', nama: 'Dimas Anggara', magang: { nama_instansi: 'PT Xendit Finance Indonesia', posisi: 'API Integration Specialist' }, dpl: { nama_dpl: 'Widodo, M.Kom' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } }
+          ];
 
-            <section className="main-panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <GraduationCap size={20} className="text-primary" />
-                  Daftar Mahasiswa Konversi SKS (S1 Informatika)
-                </h3>
-                <button 
-                  onClick={fetchMahasiswaList} 
-                  style={{ background: '#f3e8ff', border: '1px solid #e9d5ff', color: '#7e22ce', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <RefreshCcw size={14} /> Refresh Data
-                </button>
-              </div>
+          const rawList = mahasiswaListApi.length > 0 ? mahasiswaListApi : defaultMhsList;
+          const list = rawList.map((mhs, idx) => {
+            const fb = defaultMhsList[idx % defaultMhsList.length] || {};
+            return {
+              ...mhs,
+              nama: mhs.nama || fb.nama || 'Mahasiswa Konversi',
+              nim: mhs.nim || fb.nim || `21.11.${4001 + idx}`,
+              magang: {
+                nama_instansi: mhs.magang?.nama_instansi || fb.magang?.nama_instansi || 'PT GoTo Gojek Tokopedia Tbk',
+                posisi: mhs.magang?.posisi || fb.magang?.posisi || 'Fullstack Developer Intern'
+              },
+              dpl: {
+                nama_dpl: mhs.dpl?.nama_dpl || fb.dpl?.nama_dpl || 'Dr. Indah Susanti, M.Kom'
+              },
+              konversi_sks: {
+                total_sks: mhs.konversi_sks?.total_sks || fb.konversi_sks?.total_sks || 20,
+                status_review_dpl: mhs.konversi_sks?.status_review_dpl || fb.konversi_sks?.status_review_dpl || 'Disetujui DPL'
+              }
+            };
+          });
 
-              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>MAHASISWA</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>INSTANSI MAGANG</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>DOSEN PEMBIMBING (DPL)</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>USULAN SKS</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>STATUS REVIEW</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(mahasiswaListApi.length > 0 ? mahasiswaListApi : [
-                      { nim: '21.11.4001', nama: 'Budi Santoso', magang: { nama_instansi: 'PT GoTo Gojek Tokopedia Tbk', posisi: 'Fullstack Developer Intern' }, dpl: { nama_dpl: 'Dr. Indah Susanti, M.Kom' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
-                      { nim: '21.11.4002', nama: 'Fathur Rahman', magang: { nama_instansi: 'PT Bank Central Asia Tbk', posisi: 'Backend Engineer Intern' }, dpl: { nama_dpl: 'Bambang Kurniawan, M.T.' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
-                      { nim: '21.11.4003', nama: 'Ramadhan', magang: { nama_instansi: 'PT Bukalapak.com Tbk', posisi: 'Mobile Developer Intern' }, dpl: { nama_dpl: 'Dr. Indah Susanti, M.Kom' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Menunggu Review DPL' } }
-                    ]).map((mhs, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '14px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e1b4b' }}>{mhs.nama}</span>
-                            <span style={{ fontSize: '12px', color: '#7e22ce', fontWeight: '600' }}>{mhs.nim}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '14px', fontSize: '13px', fontWeight: '600', color: '#1e1b4b' }}>
-                          {mhs.magang?.nama_instansi || 'PT GoTo Gojek Tokopedia Tbk'}
-                        </td>
-                        <td style={{ padding: '14px', fontSize: '13px', color: '#475569' }}>
-                          {mhs.dpl?.nama_dpl || 'Dr. Indah Susanti, M.Kom'}
-                        </td>
-                        <td style={{ padding: '14px', textAlign: 'center' }}>
-                          <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '13px' }}>
-                            {mhs.konversi_sks?.total_sks || 20} SKS
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px', textAlign: 'center' }}>
-                          <span style={{
-                            padding: '4px 12px', borderRadius: '20px', fontWeight: '700', fontSize: '11px',
-                            backgroundColor: (mhs.konversi_sks?.status_review_dpl || '').includes('Disetujui') ? '#ecfdf5' : '#fffbeb',
-                            color: (mhs.konversi_sks?.status_review_dpl || '').includes('Disetujui') ? '#059669' : '#d97706',
-                            border: (mhs.konversi_sks?.status_review_dpl || '').includes('Disetujui') ? '1px solid #a7f3d0' : '1px solid #fde68a'
-                          }}>
-                            {mhs.konversi_sks?.status_review_dpl || 'Menunggu Review DPL'}
-                          </span>
-                        </td>
+          const totalPages = Math.ceil(list.length / MHS_PER_PAGE) || 1;
+          const startIndex = (mhsPage - 1) * MHS_PER_PAGE;
+          const paginatedList = list.slice(startIndex, startIndex + MHS_PER_PAGE);
+
+          return (
+            <>
+              <section className="welcome-section" style={{ marginBottom: '24px' }}>
+                <h2 className="welcome-title">Daftar & Monitoring Mahasiswa Konversi</h2>
+                <p className="welcome-desc">
+                  Pantau daftar seluruh mahasiswa magang, progres 5 step, dan status penetapan DPL pembimbing.
+                </p>
+              </section>
+
+              <section className="main-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <GraduationCap size={20} className="text-primary" />
+                    Daftar Mahasiswa Konversi SKS (S1 Informatika) (Halaman {mhsPage} dari {totalPages})
+                  </h3>
+                  <button 
+                    onClick={fetchMahasiswaList} 
+                    style={{ background: '#f3e8ff', border: '1px solid #e9d5ff', color: '#7e22ce', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <RefreshCcw size={14} /> Refresh Data
+                  </button>
+                </div>
+
+                <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>MAHASISWA</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>INSTANSI MAGANG</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>DOSEN PEMBIMBING (DPL)</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>USULAN SKS</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>STATUS REVIEW</th>
                       </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedList.map((mhs, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '14px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e1b4b' }}>{mhs.nama}</span>
+                              <span style={{ fontSize: '12px', color: '#7e22ce', fontWeight: '600' }}>{mhs.nim}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px', fontSize: '13px', fontWeight: '600', color: '#1e1b4b' }}>
+                            {mhs.magang?.nama_instansi}
+                          </td>
+                          <td style={{ padding: '14px', fontSize: '13px', color: '#475569' }}>
+                            {mhs.dpl?.nama_dpl}
+                          </td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '13px' }}>
+                              {mhs.konversi_sks?.total_sks || 20} SKS
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <span style={{
+                              padding: '4px 12px', borderRadius: '20px', fontWeight: '700', fontSize: '11px',
+                              backgroundColor: (mhs.konversi_sks?.status_review_dpl || '').includes('Disetujui') ? '#ecfdf5' : '#fffbeb',
+                              color: (mhs.konversi_sks?.status_review_dpl || '').includes('Disetujui') ? '#059669' : '#d97706',
+                              border: (mhs.konversi_sks?.status_review_dpl || '').includes('Disetujui') ? '1px solid #a7f3d0' : '1px solid #fde68a'
+                            }}>
+                              {mhs.konversi_sks?.status_review_dpl || 'Menunggu Review DPL'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* PAGINASI MODERN PER 10 MAHASISWA */}
+                <div style={{
+                  display: 'flex',
+                  justify: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '16px',
+                  paddingTop: '12px',
+                  borderTop: '1px solid #f1f5f9'
+                }}>
+                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>
+                    Menampilkan <strong>{Math.min(startIndex + 1, list.length)}</strong> - <strong>{Math.min(startIndex + MHS_PER_PAGE, list.length)}</strong> dari <strong>{list.length}</strong> Mahasiswa Konversi
+                  </span>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setMhsPage(prev => Math.max(prev - 1, 1))}
+                      disabled={mhsPage === 1}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: mhsPage === 1 ? '#f8fafc' : '#ffffff',
+                        color: mhsPage === 1 ? '#94a3b8' : '#475569',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: mhsPage === 1 ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      ‹ Sebelumnya
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
+                      <button
+                        key={pNum}
+                        onClick={() => setMhsPage(pNum)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          border: mhsPage === pNum ? 'none' : '1px solid #cbd5e1',
+                          backgroundColor: mhsPage === pNum ? '#9333ea' : '#ffffff',
+                          color: mhsPage === pNum ? '#ffffff' : '#475569',
+                          fontWeight: '800',
+                          fontSize: '13px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {pNum}
+                      </button>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </>
-        )}
+
+                    <button
+                      onClick={() => setMhsPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={mhsPage === totalPages}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: mhsPage === totalPages ? '#f8fafc' : '#ffffff',
+                        color: mhsPage === totalPages ? '#94a3b8' : '#475569',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: mhsPage === totalPages ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      Berikutnya ›
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </>
+          );
+        })()}
 
     {/* TAB 3: PENILAIAN AKHIR */}
     {activeNavTab === 'penilaian' && (
