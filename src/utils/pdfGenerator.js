@@ -1,6 +1,3 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-
 // Helper Format Tanggal Indonesia
 function formatTanggalIndo(dateStr) {
   if (!dateStr) return '28 Juli 2026';
@@ -14,8 +11,127 @@ function formatTanggalIndo(dateStr) {
   }
 }
 
+// Helper untuk Membuka Window Preview & Print PDF secara Instant & Safe (Tanpa Blank/Crash)
+function openDocumentPreviewWindow(title, htmlBodyContent) {
+  const printWindow = window.open('', '_blank', 'width=900,height=1000,scrollbars=yes,resizable=yes');
+  if (!printWindow) {
+    alert('Harap izinkan popup browser untuk membuka pratinjau dokumen PDF.');
+    return;
+  }
+
+  const documentHtml = `
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8">
+      <title>${title}</title>
+      <style>
+        @page {
+          size: A4;
+          margin: 15mm 15mm 15mm 15mm;
+        }
+        body {
+          font-family: 'Times New Roman', Times, serif;
+          color: #000;
+          background-color: #f1f5f9;
+          margin: 0;
+          padding: 0;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .preview-toolbar {
+          position: fixed;
+          top: 0; left: 0; right: 0;
+          height: 54px;
+          background: #1e1b4b;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 24px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 9999;
+          font-family: system-ui, -apple-system, sans-serif;
+        }
+        .preview-toolbar h1 {
+          font-size: 14px;
+          font-weight: 700;
+          margin: 0;
+          color: #f3e8ff;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .preview-btn {
+          padding: 8px 18px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          border: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s;
+        }
+        .btn-print {
+          background: linear-gradient(135deg, #a855f7, #9333ea);
+          color: #ffffff;
+          box-shadow: 0 2px 8px rgba(168,85,247,0.4);
+        }
+        .btn-print:hover { background: #7e22ce; }
+        .btn-close {
+          background: rgba(255,255,255,0.15);
+          color: #ffffff;
+          margin-left: 8px;
+        }
+        .btn-close:hover { background: rgba(255,255,255,0.25); }
+
+        .document-page {
+          width: 210mm;
+          min-height: 297mm;
+          padding: 20mm 20mm;
+          margin: 70px auto 40px auto;
+          background: #ffffff;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+          box-sizing: border-box;
+        }
+
+        @media print {
+          .preview-toolbar { display: none !important; }
+          body { background: #ffffff !important; }
+          .document-page {
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            width: 100% !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="preview-toolbar">
+        <h1>📄 Pratinjau Dokumen Resmi Amikom — ${title}</h1>
+        <div>
+          <button class="preview-btn btn-print" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+          <button class="preview-btn btn-close" onclick="window.close()">❌ Tutup Window</button>
+        </div>
+      </div>
+
+      <div class="document-page">
+        ${htmlBodyContent}
+      </div>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(documentHtml);
+  printWindow.document.close();
+}
+
 // 1. GENERATE SURAT PENGANTAR MAGANG (FIK-IF AMIKOM)
-export async function generateSuratPengantarMagangPdf(data = {}) {
+export function generateSuratPengantarMagangPdf(data = {}) {
   const {
     nomorSurat = '55/FIK-IF/AMIKOM/MAGANG/VI/2026',
     tanggalSurat = new Date().toISOString(),
@@ -28,28 +144,18 @@ export async function generateSuratPengantarMagangPdf(data = {}) {
     tanggalSelesai = '31 Juli 2026'
   } = data;
 
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '-9999px';
-  container.style.width = '794px'; // A4 Width in Pixels at 96 DPI
-  container.style.padding = '40px 50px';
-  container.style.fontFamily = "'Times New Roman', Times, serif";
-  container.style.color = '#000000';
-  container.style.backgroundColor = '#ffffff';
-
-  container.innerHTML = `
+  const content = `
     <!-- KOP SURAT RESMI UNIVERSITAS AMIKOM YOGYAKARTA -->
     <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #000; padding-bottom: 12px; margin-bottom: 24px;">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 70px; height: 70px; background-color: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 24px;">
+        <div style="width: 70px; height: 70px; background-color: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 24px; font-family: sans-serif;">
           AM
         </div>
         <div>
-          <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #581c87; text-transform: uppercase;">UNIVERSITAS AMIKOM YOGYAKARTA</h2>
-          <h3 style="margin: 2px 0 0 0; font-size: 15px; font-weight: bold; color: #1e1b4b;">FAKULTAS ILMU KOMPUTER</h3>
-          <p style="margin: 2px 0 0 0; font-size: 11px; color: #475569;">Jl. Ring Road Utara, Condongcatur, Depok, Sleman, Yogyakarta 55283</p>
-          <p style="margin: 1px 0 0 0; font-size: 11px; color: #475569;">Telp: (0274) 884201, Fax: (0274) 884208 | Website: amikom.ac.id</p>
+          <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #581c87; text-transform: uppercase; font-family: sans-serif;">UNIVERSITAS AMIKOM YOGYAKARTA</h2>
+          <h3 style="margin: 2px 0 0 0; font-size: 15px; font-weight: bold; color: #1e1b4b; font-family: sans-serif;">FAKULTAS ILMU KOMPUTER</h3>
+          <p style="margin: 2px 0 0 0; font-size: 11px; color: #475569; font-family: sans-serif;">Jl. Ring Road Utara, Condongcatur, Depok, Sleman, Yogyakarta 55283</p>
+          <p style="margin: 1px 0 0 0; font-size: 11px; color: #475569; font-family: sans-serif;">Telp: (0274) 884201, Fax: (0274) 884208 | Website: amikom.ac.id</p>
         </div>
       </div>
     </div>
@@ -105,9 +211,9 @@ export async function generateSuratPengantarMagangPdf(data = {}) {
     </div>
 
     <!-- TANDA TANGAN DEKAN & QR CODE VERIFIKASI -->
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px;">
       <div style="border: 1px dashed #7e22ce; padding: 10px; border-radius: 8px; background-color: #faf5ff; display: flex; align-items: center; gap: 10px; width: 260px;">
-        <div style="width: 50px; height: 50px; background-color: #7e22ce; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border-radius: 4px; text-align: center;">
+        <div style="width: 50px; height: 50px; background-color: #7e22ce; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border-radius: 4px; text-align: center; font-family: sans-serif;">
           QR VALIDATED
         </div>
         <div style="font-size: 10px; color: #581c87; font-family: sans-serif;">
@@ -129,22 +235,11 @@ export async function generateSuratPengantarMagangPdf(data = {}) {
     </div>
   `;
 
-  document.body.appendChild(container);
-  try {
-    const canvas = await html2canvas(container, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Surat_Pengantar_Magang_${nimMahasiswa}_${namaMahasiswa.replace(/\s+/g, '_')}.pdf`);
-  } finally {
-    document.body.removeChild(container);
-  }
+  openDocumentPreviewWindow(`Surat Pengantar Magang - ${namaMahasiswa}`, content);
 }
 
 // 2. GENERATE SURAT PRASURVEY MAGANG (FIK-IF AMIKOM)
-export async function generateSuratPrasurveyMagangPdf(data = {}) {
+export function generateSuratPrasurveyMagangPdf(data = {}) {
   const {
     nomorSurat = '84/FIK-IF/AMIKOM/PSM/V/2026',
     tanggalSurat = new Date().toISOString(),
@@ -155,28 +250,18 @@ export async function generateSuratPrasurveyMagangPdf(data = {}) {
     prodi = 'S1 Informatika'
   } = data;
 
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '-9999px';
-  container.style.width = '794px';
-  container.style.padding = '40px 50px';
-  container.style.fontFamily = "'Times New Roman', Times, serif";
-  container.style.color = '#000000';
-  container.style.backgroundColor = '#ffffff';
-
-  container.innerHTML = `
+  const content = `
     <!-- KOP SURAT RESMI UNIVERSITAS AMIKOM YOGYAKARTA -->
     <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #000; padding-bottom: 12px; margin-bottom: 24px;">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 70px; height: 70px; background-color: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 24px;">
+        <div style="width: 70px; height: 70px; background-color: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 24px; font-family: sans-serif;">
           AM
         </div>
         <div>
-          <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #581c87; text-transform: uppercase;">UNIVERSITAS AMIKOM YOGYAKARTA</h2>
-          <h3 style="margin: 2px 0 0 0; font-size: 15px; font-weight: bold; color: #1e1b4b;">FAKULTAS ILMU KOMPUTER</h3>
-          <p style="margin: 2px 0 0 0; font-size: 11px; color: #475569;">Jl. Ring Road Utara, Condongcatur, Depok, Sleman, Yogyakarta 55283</p>
-          <p style="margin: 1px 0 0 0; font-size: 11px; color: #475569;">Telp: (0274) 884201, Fax: (0274) 884208 | Website: amikom.ac.id</p>
+          <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #581c87; text-transform: uppercase; font-family: sans-serif;">UNIVERSITAS AMIKOM YOGYAKARTA</h2>
+          <h3 style="margin: 2px 0 0 0; font-size: 15px; font-weight: bold; color: #1e1b4b; font-family: sans-serif;">FAKULTAS ILMU KOMPUTER</h3>
+          <p style="margin: 2px 0 0 0; font-size: 11px; color: #475569; font-family: sans-serif;">Jl. Ring Road Utara, Condongcatur, Depok, Sleman, Yogyakarta 55283</p>
+          <p style="margin: 1px 0 0 0; font-size: 11px; color: #475569; font-family: sans-serif;">Telp: (0274) 884201, Fax: (0274) 884208 | Website: amikom.ac.id</p>
         </div>
       </div>
     </div>
@@ -234,7 +319,7 @@ export async function generateSuratPrasurveyMagangPdf(data = {}) {
     <!-- TANDA TANGAN DEKAN & QR CODE -->
     <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px;">
       <div style="border: 1px dashed #7e22ce; padding: 10px; border-radius: 8px; background-color: #faf5ff; display: flex; align-items: center; gap: 10px; width: 260px;">
-        <div style="width: 50px; height: 50px; background-color: #7e22ce; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border-radius: 4px; text-align: center;">
+        <div style="width: 50px; height: 50px; background-color: #7e22ce; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border-radius: 4px; text-align: center; font-family: sans-serif;">
           QR VALIDATED
         </div>
         <div style="font-size: 10px; color: #581c87; font-family: sans-serif;">
@@ -256,22 +341,11 @@ export async function generateSuratPrasurveyMagangPdf(data = {}) {
     </div>
   `;
 
-  document.body.appendChild(container);
-  try {
-    const canvas = await html2canvas(container, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Surat_Prasurvey_Magang_${nimMahasiswa}_${namaMahasiswa.replace(/\s+/g, '_')}.pdf`);
-  } finally {
-    document.body.removeChild(container);
-  }
+  openDocumentPreviewWindow(`Surat Prasurvey Magang - ${namaMahasiswa}`, content);
 }
 
 // 3. GENERATE SURAT PENUNJUKAN DOSEN PEMBIMBING MAGANG (FIK-IF AMIKOM)
-export async function generateSuratPenunjukanDplPdf(data = {}) {
+export function generateSuratPenunjukanDplPdf(data = {}) {
   const {
     nomorSurat = '45/FIK-IF/AMIKOM/STDM/VI/2026',
     tanggalSurat = new Date().toISOString(),
@@ -284,28 +358,18 @@ export async function generateSuratPenunjukanDplPdf(data = {}) {
     durasi = '6 Bulan'
   } = data;
 
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '-9999px';
-  container.style.width = '794px';
-  container.style.padding = '40px 50px';
-  container.style.fontFamily = "'Times New Roman', Times, serif";
-  container.style.color = '#000000';
-  container.style.backgroundColor = '#ffffff';
-
-  container.innerHTML = `
+  const content = `
     <!-- KOP SURAT RESMI UNIVERSITAS AMIKOM YOGYAKARTA -->
     <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #000; padding-bottom: 12px; margin-bottom: 24px;">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 70px; height: 70px; background-color: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 24px;">
+        <div style="width: 70px; height: 70px; background-color: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 24px; font-family: sans-serif;">
           AM
         </div>
         <div>
-          <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #581c87; text-transform: uppercase;">UNIVERSITAS AMIKOM YOGYAKARTA</h2>
-          <h3 style="margin: 2px 0 0 0; font-size: 15px; font-weight: bold; color: #1e1b4b;">FAKULTAS ILMU KOMPUTER</h3>
-          <p style="margin: 2px 0 0 0; font-size: 11px; color: #475569;">Jl. Ring Road Utara, Condongcatur, Depok, Sleman, Yogyakarta 55283</p>
-          <p style="margin: 1px 0 0 0; font-size: 11px; color: #475569;">Telp: (0274) 884201, Fax: (0274) 884208 | Website: amikom.ac.id</p>
+          <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #581c87; text-transform: uppercase; font-family: sans-serif;">UNIVERSITAS AMIKOM YOGYAKARTA</h2>
+          <h3 style="margin: 2px 0 0 0; font-size: 15px; font-weight: bold; color: #1e1b4b; font-family: sans-serif;">FAKULTAS ILMU KOMPUTER</h3>
+          <p style="margin: 2px 0 0 0; font-size: 11px; color: #475569; font-family: sans-serif;">Jl. Ring Road Utara, Condongcatur, Depok, Sleman, Yogyakarta 55283</p>
+          <p style="margin: 1px 0 0 0; font-size: 11px; color: #475569; font-family: sans-serif;">Telp: (0274) 884201, Fax: (0274) 884208 | Website: amikom.ac.id</p>
         </div>
       </div>
     </div>
@@ -356,9 +420,9 @@ export async function generateSuratPenunjukanDplPdf(data = {}) {
     </div>
 
     <!-- TANDA TANGAN DEKAN & QR CODE -->
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px;">
       <div style="border: 1px dashed #7e22ce; padding: 10px; border-radius: 8px; background-color: #faf5ff; display: flex; align-items: center; gap: 10px; width: 260px;">
-        <div style="width: 50px; height: 50px; background-color: #7e22ce; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border-radius: 4px; text-align: center;">
+        <div style="width: 50px; height: 50px; background-color: #7e22ce; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border-radius: 4px; text-align: center; font-family: sans-serif;">
           QR VALIDATED
         </div>
         <div style="font-size: 10px; color: #581c87; font-family: sans-serif;">
@@ -380,22 +444,11 @@ export async function generateSuratPenunjukanDplPdf(data = {}) {
     </div>
   `;
 
-  document.body.appendChild(container);
-  try {
-    const canvas = await html2canvas(container, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Surat_Penunjukan_DPL_${nimMahasiswa}_${namaDosen.replace(/\s+/g, '_')}.pdf`);
-  } finally {
-    document.body.removeChild(container);
-  }
+  openDocumentPreviewWindow(`Surat Penunjukan DPL - ${namaDosen}`, content);
 }
 
 // 4. GENERATE TRANSKRIP HASIL KONVERSI SKS & CPMK (OBE)
-export async function generateTranskripKonversiPdf(data = {}) {
+export function generateTranskripKonversiPdf(data = {}) {
   const {
     namaMahasiswa = 'Budi Santoso',
     nimMahasiswa = '21.11.4001',
@@ -412,35 +465,25 @@ export async function generateTranskripKonversiPdf(data = {}) {
 
   const totalSks = courses.reduce((acc, c) => acc + (Number(c.sks) || 3), 0);
 
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '-9999px';
-  container.style.width = '794px';
-  container.style.padding = '40px 50px';
-  container.style.fontFamily = "'Times New Roman', Times, serif";
-  container.style.color = '#000000';
-  container.style.backgroundColor = '#ffffff';
-
-  container.innerHTML = `
+  const content = `
     <!-- KOP SURAT RESMI UNIVERSITAS AMIKOM YOGYAKARTA -->
     <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #000; padding-bottom: 12px; margin-bottom: 24px;">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 70px; height: 70px; background-color: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 24px;">
+        <div style="width: 70px; height: 70px; background-color: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 24px; font-family: sans-serif;">
           AM
         </div>
         <div>
-          <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #581c87; text-transform: uppercase;">UNIVERSITAS AMIKOM YOGYAKARTA</h2>
-          <h3 style="margin: 2px 0 0 0; font-size: 15px; font-weight: bold; color: #1e1b4b;">FAKULTAS ILMU KOMPUTER</h3>
-          <p style="margin: 2px 0 0 0; font-size: 11px; color: #475569;">Jl. Ring Road Utara, Condongcatur, Depok, Sleman, Yogyakarta 55283</p>
-          <p style="margin: 1px 0 0 0; font-size: 11px; color: #475569;">Telp: (0274) 884201, Fax: (0274) 884208 | Website: amikom.ac.id</p>
+          <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #581c87; text-transform: uppercase; font-family: sans-serif;">UNIVERSITAS AMIKOM YOGYAKARTA</h2>
+          <h3 style="margin: 2px 0 0 0; font-size: 15px; font-weight: bold; color: #1e1b4b; font-family: sans-serif;">FAKULTAS ILMU KOMPUTER</h3>
+          <p style="margin: 2px 0 0 0; font-size: 11px; color: #475569; font-family: sans-serif;">Jl. Ring Road Utara, Condongcatur, Depok, Sleman, Yogyakarta 55283</p>
+          <p style="margin: 1px 0 0 0; font-size: 11px; color: #475569; font-family: sans-serif;">Telp: (0274) 884201, Fax: (0274) 884208 | Website: amikom.ac.id</p>
         </div>
       </div>
     </div>
 
     <div style="text-align: center; margin-bottom: 24px;">
-      <h3 style="margin: 0; font-size: 16px; font-weight: bold; text-decoration: underline; text-transform: uppercase;">TRANSKRIP HASIL KONVERSI SKS & HASIL CAPAIAN PEMBELAJARAN (OBE)</h3>
-      <p style="margin: 4px 0 0 0; font-size: 12px; color: #475569;">PROGRAM MAGANG MERDEKA / MBKM INFORMATIKA AMIKOM</p>
+      <h3 style="margin: 0; font-size: 16px; font-weight: bold; text-decoration: underline; text-transform: uppercase; font-family: sans-serif;">TRANSKRIP HASIL KONVERSI SKS & HASIL CAPAIAN PEMBELAJARAN (OBE)</h3>
+      <p style="margin: 4px 0 0 0; font-size: 12px; color: #475569; font-family: sans-serif;">PROGRAM MAGANG MERDEKA / MBKM INFORMATIKA AMIKOM</p>
     </div>
 
     <!-- IDENTITAS MAHASISWA -->
@@ -488,9 +531,9 @@ export async function generateTranskripKonversiPdf(data = {}) {
       </tfoot>
     </table>
 
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px;">
       <div style="border: 1px dashed #7e22ce; padding: 10px; border-radius: 8px; background-color: #faf5ff; display: flex; align-items: center; gap: 10px; width: 260px;">
-        <div style="width: 50px; height: 50px; background-color: #7e22ce; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border-radius: 4px; text-align: center;">
+        <div style="width: 50px; height: 50px; background-color: #7e22ce; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border-radius: 4px; text-align: center; font-family: sans-serif;">
           QR VALIDATED
         </div>
         <div style="font-size: 10px; color: #581c87; font-family: sans-serif;">
@@ -512,16 +555,5 @@ export async function generateTranskripKonversiPdf(data = {}) {
     </div>
   `;
 
-  document.body.appendChild(container);
-  try {
-    const canvas = await html2canvas(container, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Transkrip_Konversi_SKS_${nimMahasiswa}_${namaMahasiswa.replace(/\s+/g, '_')}.pdf`);
-  } finally {
-    document.body.removeChild(container);
-  }
+  openDocumentPreviewWindow(`Transkrip Konversi SKS - ${namaMahasiswa}`, content);
 }
