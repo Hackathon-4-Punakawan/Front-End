@@ -23,6 +23,7 @@ import {
   exportAdminMataKuliahApi,
   importAdminMataKuliahApi,
   exportAdminMitraApi,
+  exportAdminDosenApi,
 } from '../../services/adminService';
 
 const UnikaLogo = ({ size = 26 }) => (
@@ -171,6 +172,24 @@ const KaprodiDashboard = () => {
     } finally {
       setIsImportingMatkul(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Pagination & Export States Dosen DPL
+  const [dosenPage, setDosenPage] = useState(1);
+  const DOSEN_PER_PAGE = 10;
+  const [isExportingDosen, setIsExportingDosen] = useState(false);
+
+  const handleExportDosen = async () => {
+    setIsExportingDosen(true);
+    try {
+      const res = await exportAdminDosenApi(token, 'excel');
+      if (res.success) showToast('✅ Data Dosen Pembimbing Lapangan berhasil di-export ke Excel (.xlsx)! 📊');
+      else showToast('❌ Gagal export data dosen pembimbing');
+    } catch (err) {
+      showToast('❌ Terjadi kesalahan saat memproses export');
+    } finally {
+      setIsExportingDosen(false);
     }
   };
 
@@ -1095,98 +1114,238 @@ const KaprodiDashboard = () => {
         )}
 
         {/* TAB 2: DOSEN PEMBIMBING LAPANGAN (DPL) */}
-        {activeNavTab === 'dosen' && (
-          <>
-            <section className="welcome-section" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 className="welcome-title">Manajemen Dosen Pembimbing Lapangan (DPL)</h2>
-                <p className="welcome-desc">
-                  Kelola daftar DPL Informatika, pantau alokasi beban bimbingan, dan tambah akun DPL baru secara otomatis.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCreateDplModal(true)}
-                style={{
-                  background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '12px 20px',
-                  borderRadius: '14px',
-                  fontWeight: '800',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 6px 20px rgba(147, 51, 234, 0.35)',
-                  cursor: 'pointer'
-                }}
-              >
-                <UserPlus size={18} /> Tambah DPL Baru
-              </button>
-            </section>
+        {activeNavTab === 'dosen' && (() => {
+          const defaultDosenList = [
+            { nidn: '0522108201', nama: 'Andi Sunyoto, M.Kom.', email: 'andi.sunyoto@amikom.ac.id', bidang_keahlian: 'Cloud Infrastructure & Computer Network', total_mahasiswa_bimbingan: 2, kuota_max: 5, selesai_evaluasi: 1, menunggu_review: 1, is_active: true },
+            { nidn: '0515088502', nama: 'Bambang Kurniawan, M.Eng', email: 'bambang.k@amikom.ac.id', bidang_keahlian: 'Artificial Intelligence & Data Science', total_mahasiswa_bimbingan: 2, kuota_max: 5, selesai_evaluasi: 2, menunggu_review: 0, is_active: true },
+            { nidn: '0518048601', nama: 'Dharmawan, M.T.', email: 'dharmawan@amikom.ac.id', bidang_keahlian: 'Mobile Programming & Cyber Security', total_mahasiswa_bimbingan: 2, kuota_max: 5, selesai_evaluasi: 1, menunggu_review: 1, is_active: true },
+            { nidn: '0512038901', nama: 'Dr. Indah Susanti, M.Kom', email: 'indah.susanti@amikom.ac.id', bidang_keahlian: 'Software Engineering & Web Dev', total_mahasiswa_bimbingan: 2, kuota_max: 5, selesai_evaluasi: 2, menunggu_review: 0, is_active: true },
+            { nidn: '0509077801', nama: 'Drs. Kusrini, M.Kom.', email: 'kusrini@amikom.ac.id', bidang_keahlian: 'Business Intelligence & Data Mining', total_mahasiswa_bimbingan: 2, kuota_max: 5, selesai_evaluasi: 1, menunggu_review: 1, is_active: true },
+            { nidn: '0511048102', nama: 'Ir. Amiruddin, M.T.', email: 'amiruddin@amikom.ac.id', bidang_keahlian: 'Enterprise Architecture & Governance', total_mahasiswa_bimbingan: 3, kuota_max: 6, selesai_evaluasi: 2, menunggu_review: 1, is_active: true },
+            { nidn: '0528098301', nama: 'Niken Hendrakusma, M.Kom', email: 'niken.h@amikom.ac.id', bidang_keahlian: 'UI/UX Design & Human Computer Interaction', total_mahasiswa_bimbingan: 2, kuota_max: 5, selesai_evaluasi: 1, menunggu_review: 1, is_active: true },
+            { nidn: '0503027902', nama: 'Romi Satria Wahono, Ph.D.', email: 'romi.wahono@amikom.ac.id', bidang_keahlian: 'Machine Learning & Software Metrics', total_mahasiswa_bimbingan: 4, kuota_max: 8, selesai_evaluasi: 3, menunggu_review: 1, is_active: true },
+            { nidn: '0514068703', nama: 'Fajar Masya, M.T.', email: 'fajar.masya@amikom.ac.id', bidang_keahlian: 'Internet of Things & Embedded Systems', total_mahasiswa_bimbingan: 2, kuota_max: 5, selesai_evaluasi: 2, menunggu_review: 0, is_active: true },
+            { nidn: '0519118401', nama: 'Widodo, M.Kom', email: 'widodo@amikom.ac.id', bidang_keahlian: 'Database Systems & Big Data Architecture', total_mahasiswa_bimbingan: 2, kuota_max: 5, selesai_evaluasi: 1, menunggu_review: 1, is_active: true },
+            { nidn: '0525128802', nama: 'Yuli Astuti, M.Kom', email: 'yuli.astuti@amikom.ac.id', bidang_keahlian: 'Game Development & Interactive Media', total_mahasiswa_bimbingan: 1, kuota_max: 5, selesai_evaluasi: 1, menunggu_review: 0, is_active: true }
+          ];
 
-            <section className="main-panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <UserCheck size={20} className="text-primary" />
-                  Daftar Dosen Pembimbing (DPL) Informatika
-                </h3>
-                <button 
-                  onClick={fetchDosenList} 
-                  style={{ background: '#f3e8ff', border: '1px solid #e9d5ff', color: '#7e22ce', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <RefreshCcw size={14} /> Refresh Data
-                </button>
-              </div>
+          const rawList = dosenListApi.length > 0 ? dosenListApi : defaultDosenList;
+          const list = rawList.map((d, idx) => {
+            const fb = defaultDosenList[idx % defaultDosenList.length] || {};
+            return {
+              ...d,
+              nama: d.nama || fb.nama || 'Dosen Pembimbing DPL',
+              email: d.email || fb.email || `${d.nidn}@amikom.ac.id`,
+              bidang_keahlian: d.bidang_keahlian || fb.bidang_keahlian || 'Software Engineering',
+              kuota_max: d.kuota_max || fb.kuota_max || 5,
+              selesai_evaluasi: d.selesai_evaluasi !== undefined ? d.selesai_evaluasi : fb.selesai_evaluasi,
+              menunggu_review: d.menunggu_review !== undefined ? d.menunggu_review : fb.menunggu_review,
+              total_mahasiswa_bimbingan: d.total_mahasiswa_bimbingan || fb.total_mahasiswa_bimbingan || 2,
+              is_active: d.is_active !== false
+            };
+          });
 
-              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>NIDN</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>NAMA DOSEN PEMBIMBING</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>EMAIL RESMI</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>BIDANG KEAHLIAN</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>MAHASISWA BIMBINGAN</th>
-                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(dosenListApi.length > 0 ? dosenListApi : [
-                      { nidn: '0512038901', nama: 'Dr. Indah Susanti, M.Kom', email: 'indah.susanti@amikom.ac.id', bidang_keahlian: 'Software Engineering', total_mahasiswa_bimbingan: 2, is_active: true },
-                      { nidn: '0515088502', nama: 'Bambang Kurniawan, M.T.', email: 'bambang.k@amikom.ac.id', bidang_keahlian: 'Cloud & Cyber Security', total_mahasiswa_bimbingan: 3, is_active: true },
-                      { nidn: '0509077801', nama: 'Drs. Kusrini, M.Kom.', email: 'kusrini@amikom.ac.id', bidang_keahlian: 'Artificial Intelligence', total_mahasiswa_bimbingan: 2, is_active: true },
-                      { nidn: '0522108201', nama: 'Andi Sunyoto, M.Kom', email: 'andi.sunyoto@amikom.ac.id', bidang_keahlian: 'Database Systems', total_mahasiswa_bimbingan: 1, is_active: true }
-                    ]).map((d, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '14px', fontSize: '13px', fontWeight: '800', color: '#7e22ce' }}>{d.nidn}</td>
-                        <td style={{ padding: '14px', fontSize: '14px', fontWeight: '700', color: '#1e1b4b' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <img src={d.foto_profile || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.nama)}&background=0284c7&color=fff&bold=true`} alt={d.nama} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
-                            <span>{d.nama}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '14px', fontSize: '13px', color: '#475569' }}>{d.email}</td>
-                        <td style={{ padding: '14px', fontSize: '13px', color: '#64748b' }}>{d.bidang_keahlian || 'Informatika'}</td>
-                        <td style={{ padding: '14px', textAlign: 'center' }}>
-                          <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '4px 12px', borderRadius: '12px', fontWeight: '800', fontSize: '13px' }}>
-                            {d.total_mahasiswa_bimbingan || 2} Mahasiswa
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px', textAlign: 'center' }}>
-                          <span style={{ backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '4px 10px', borderRadius: '20px', fontWeight: '700', fontSize: '11px' }}>
-                            Aktif
-                          </span>
-                        </td>
+          const totalPages = Math.ceil(list.length / DOSEN_PER_PAGE) || 1;
+          const startIndex = (dosenPage - 1) * DOSEN_PER_PAGE;
+          const paginatedList = list.slice(startIndex, startIndex + DOSEN_PER_PAGE);
+
+          return (
+            <>
+              <section className="welcome-section" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2 className="welcome-title">Manajemen Dosen Pembimbing Lapangan (DPL)</h2>
+                  <p className="welcome-desc">
+                    Kelola daftar DPL Informatika, pantau alokasi beban bimbingan, dan tambah akun DPL baru secara otomatis.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={handleExportDosen}
+                    disabled={isExportingDosen}
+                    style={{
+                      background: 'linear-gradient(135deg, #7e22ce 0%, #581c87 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '12px 18px',
+                      borderRadius: '14px',
+                      fontWeight: '800',
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 6px 18px rgba(126, 34, 206, 0.3)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Download size={16} /> {isExportingDosen ? 'Mengunduh...' : 'Export Excel'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateDplModal(true)}
+                    style={{
+                      background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '12px 20px',
+                      borderRadius: '14px',
+                      fontWeight: '800',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 6px 20px rgba(147, 51, 234, 0.35)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <UserPlus size={18} /> Tambah DPL Baru
+                  </button>
+                </div>
+              </section>
+
+              <section className="main-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <UserCheck size={20} className="text-primary" />
+                    Daftar Dosen Pembimbing (DPL) Informatika (Halaman {dosenPage} dari {totalPages})
+                  </h3>
+                  <button 
+                    onClick={fetchDosenList} 
+                    style={{ background: '#f3e8ff', border: '1px solid #e9d5ff', color: '#7e22ce', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <RefreshCcw size={14} /> Refresh Data
+                  </button>
+                </div>
+
+                <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>NIDN</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>NAMA DOSEN PEMBIMBING</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>EMAIL RESMI</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>BIDANG KEAHLIAN</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>BEBAN BIMBINGAN</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>STATUS EVALUASI</th>
+                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>STATUS</th>
                       </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedList.map((d, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '14px', fontSize: '13px', fontWeight: '800', color: '#7e22ce' }}>{d.nidn}</td>
+                          <td style={{ padding: '14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <img src={d.foto_profile || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.nama)}&background=7e22ce&color=fff&bold=true`} alt={d.nama} style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #e9d5ff' }} />
+                              <div>
+                                <div style={{ fontSize: '14px', fontWeight: '700', color: '#1e1b4b' }}>{d.nama}</div>
+                                <div style={{ fontSize: '11px', color: '#64748b' }}>Dosen Pembimbing Lapangan</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px', fontSize: '13px', color: '#475569', fontWeight: '600' }}>
+                            <a href={`mailto:${d.email}`} style={{ color: '#7e22ce', textDecoration: 'none' }}>
+                              ✉️ {d.email}
+                            </a>
+                          </td>
+                          <td style={{ padding: '14px', fontSize: '13px', color: '#64748b', fontWeight: '500' }}>{d.bidang_keahlian}</td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '13px' }}>
+                              {d.total_mahasiswa_bimbingan} / {d.kuota_max} Mhs
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#047857' }}>
+                              ✓ Selesai: {d.selesai_evaluasi} Mhs
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#b45309' }}>
+                              ⏳ Review: {d.menunggu_review} Mhs
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <span style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '4px 10px', borderRadius: '12px', fontWeight: '700', fontSize: '12px' }}>
+                              {d.is_active ? 'Aktif' : 'Non-Aktif'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* PAGINASI MODERN PER 10 DOSEN */}
+                <div style={{
+                  display: 'flex',
+                  justify: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '16px',
+                  paddingTop: '12px',
+                  borderTop: '1px solid #f1f5f9'
+                }}>
+                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>
+                    Menampilkan <strong>{Math.min(startIndex + 1, list.length)}</strong> - <strong>{Math.min(startIndex + DOSEN_PER_PAGE, list.length)}</strong> dari <strong>{list.length}</strong> Dosen Pembimbing (DPL)
+                  </span>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setDosenPage(prev => Math.max(prev - 1, 1))}
+                      disabled={dosenPage === 1}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: dosenPage === 1 ? '#f8fafc' : '#ffffff',
+                        color: dosenPage === 1 ? '#94a3b8' : '#475569',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: dosenPage === 1 ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      ‹ Sebelumnya
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
+                      <button
+                        key={pNum}
+                        onClick={() => setDosenPage(pNum)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          border: dosenPage === pNum ? 'none' : '1px solid #cbd5e1',
+                          backgroundColor: dosenPage === pNum ? '#9333ea' : '#ffffff',
+                          color: dosenPage === pNum ? '#ffffff' : '#475569',
+                          fontWeight: '800',
+                          fontSize: '13px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {pNum}
+                      </button>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </>
-        )}
+
+                    <button
+                      onClick={() => setDosenPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={dosenPage === totalPages}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: dosenPage === totalPages ? '#f8fafc' : '#ffffff',
+                        color: dosenPage === totalPages ? '#94a3b8' : '#475569',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: dosenPage === totalPages ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      Berikutnya ›
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </>
+          );
+        })()}
 
         {/* TAB 3: MITRA INDUSTRI */}
         {activeNavTab === 'mitra' && (() => {

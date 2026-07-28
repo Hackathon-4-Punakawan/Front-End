@@ -306,3 +306,32 @@ export const exportAdminMitraApi = async (token, format = 'excel') => {
     return { success: false, message: error.message };
   }
 };
+
+/**
+ * 14. Export Data Dosen Pembimbing Lapangan (DPL)
+ * GET /api/v1/admin/export/dosen?format=excel
+ */
+export const exportAdminDosenApi = async (token, format = 'excel') => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/export/dosen?format=${format}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Gagal mengunduh file export Dosen Pembimbing Lapangan');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Data_Dosen_Pembimbing_Lapangan_Informatika.${format === 'csv' ? 'csv' : 'xlsx'}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Error exportAdminDosenApi:', error);
+    return { success: false, message: error.message };
+  }
+};
