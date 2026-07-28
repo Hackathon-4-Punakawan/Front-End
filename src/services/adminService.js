@@ -277,3 +277,32 @@ export const exportAdminMataKuliahApi = async (token, format = 'excel') => {
     return { success: false, message: error.message };
   }
 };
+
+/**
+ * 13. Export Data Mitra Industri & Supervisor
+ * GET /api/v1/admin/export/mitra?format=excel
+ */
+export const exportAdminMitraApi = async (token, format = 'excel') => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/export/mitra?format=${format}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Gagal mengunduh file export mitra industri');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Data_Mitra_Industri_MBKM_Informatika.${format === 'csv' ? 'csv' : 'xlsx'}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Error exportAdminMitraApi:', error);
+    return { success: false, message: error.message };
+  }
+};

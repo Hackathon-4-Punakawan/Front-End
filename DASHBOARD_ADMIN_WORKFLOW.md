@@ -1,3 +1,4 @@
+
 # 👑 Dokumentasi Lengkap Dashboard Admin Kaprodi (Program Studi)
 
 Dokumen ini berisi panduan teknis, **userflow**, **arsitektur API**, **struktur data**, dan **pengaturan master data** untuk **Dashboard Admin Kaprodi (S1 Informatika)** pada sistem BIMA (MBKM Fakultas Ilmu Komputer Universitas Amikom Yogyakarta).
