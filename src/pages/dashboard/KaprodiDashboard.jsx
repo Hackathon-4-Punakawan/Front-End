@@ -114,10 +114,10 @@ const KaprodiDashboard = () => {
     setIsExportingMatkul(true);
     try {
       const res = await exportAdminMataKuliahApi(token, 'excel');
-      if (res.success) showToast('✅ Katalog Mata Kuliah & CPMK berhasil di-export ke Excel (.xlsx)! 📊');
-      else showToast('❌ Gagal export data katalog');
+      if (res.success) showToast('Katalog Mata Kuliah & CPMK berhasil di-export ke Excel (.xlsx)!');
+      else showToast('Gagal export data katalog');
     } catch (err) {
-      showToast('❌ Terjadi kesalahan saat memproses export');
+      showToast('Terjadi kesalahan saat memproses export');
     } finally {
       setIsExportingMatkul(false);
     }
@@ -155,20 +155,20 @@ const KaprodiDashboard = () => {
       }
 
       if (parsedItems.length === 0) {
-        showToast('⚠️ Format file tidak valid atau data kosong. Gunakan JSON / CSV!');
+        showToast('Format file tidak valid atau data kosong. Gunakan JSON / CSV!');
         return;
       }
 
       const res = await importAdminMataKuliahApi(token, parsedItems);
       if (res.success) {
-        showToast(`🎉 Berhasil mengimpor ${res.data?.total_imported || parsedItems.length} Mata Kuliah & CPMK ke Katalog!`);
+        showToast(`Berhasil mengimpor ${res.data?.total_imported || parsedItems.length} Mata Kuliah & CPMK ke Katalog!`);
         fetchMatkulList();
       } else {
-        showToast(`❌ Gagal import: ${res.message}`);
+        showToast(`Gagal import: ${res.message}`);
       }
     } catch (err) {
       console.error(err);
-      showToast('❌ Terjadi kesalahan saat membaca file import');
+      showToast('Terjadi kesalahan saat membaca file import');
     } finally {
       setIsImportingMatkul(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -184,10 +184,10 @@ const KaprodiDashboard = () => {
     setIsExportingDosen(true);
     try {
       const res = await exportAdminDosenApi(token, 'excel');
-      if (res.success) showToast('✅ Data Dosen Pembimbing Lapangan berhasil di-export ke Excel (.xlsx)! 📊');
-      else showToast('❌ Gagal export data dosen pembimbing');
+      if (res.success) showToast('Data Dosen Pembimbing Lapangan berhasil di-export ke Excel (.xlsx)!');
+      else showToast('Gagal export data dosen pembimbing');
     } catch (err) {
-      showToast('❌ Terjadi kesalahan saat memproses export');
+      showToast('Terjadi kesalahan saat memproses export');
     } finally {
       setIsExportingDosen(false);
     }
@@ -202,10 +202,10 @@ const KaprodiDashboard = () => {
     setIsExportingMitra(true);
     try {
       const res = await exportAdminMitraApi(token, 'excel');
-      if (res.success) showToast('✅ Data Mitra Industri MBKM berhasil di-export ke Excel (.xlsx)! 📊');
-      else showToast('❌ Gagal export data mitra industri');
+      if (res.success) showToast('Data Mitra Industri MBKM berhasil di-export ke Excel (.xlsx)!');
+      else showToast('Gagal export data mitra industri');
     } catch (err) {
-      showToast('❌ Terjadi kesalahan saat memproses export');
+      showToast('Terjadi kesalahan saat memproses export');
     } finally {
       setIsExportingMitra(false);
     }
@@ -1245,8 +1245,8 @@ const KaprodiDashboard = () => {
                             </div>
                           </td>
                           <td style={{ padding: '14px', fontSize: '13px', color: '#475569', fontWeight: '600' }}>
-                            <a href={`mailto:${d.email}`} style={{ color: '#7e22ce', textDecoration: 'none' }}>
-                              ✉️ {d.email}
+                            <a href={`mailto:${d.email}`} style={{ color: '#7e22ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Mail size={14} /> {d.email}
                             </a>
                           </td>
                           <td style={{ padding: '14px', fontSize: '13px', color: '#64748b', fontWeight: '500' }}>{d.bidang_keahlian}</td>
@@ -1257,10 +1257,10 @@ const KaprodiDashboard = () => {
                           </td>
                           <td style={{ padding: '14px', textAlign: 'center' }}>
                             <div style={{ fontSize: '12px', fontWeight: '700', color: '#047857' }}>
-                              ✓ Selesai: {d.selesai_evaluasi} Mhs
+                              Selesai: {d.selesai_evaluasi} Mhs
                             </div>
                             <div style={{ fontSize: '11px', color: '#b45309' }}>
-                              ⏳ Review: {d.menunggu_review} Mhs
+                              Pending: {d.menunggu_review} Mhs
                             </div>
                           </td>
                           <td style={{ padding: '14px', textAlign: 'center' }}>
@@ -1469,15 +1469,15 @@ const KaprodiDashboard = () => {
                         <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '14px' }}>
                             <div style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>{m.nama_perusahaan}</div>
-                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>📍 {m.lokasi}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Lokasi: {m.lokasi}</div>
                           </td>
                           <td style={{ padding: '14px' }}>
                             <div style={{ fontSize: '13px', fontWeight: '700', color: '#0369a1' }}>{m.nama_supervisor}</div>
                             <div style={{ fontSize: '11px', color: '#64748b' }}>Position: {m.posisi.split(',')[0]}</div>
                           </td>
                           <td style={{ padding: '14px', fontSize: '13px', color: '#334155', fontWeight: '600' }}>
-                            <a href={`mailto:${m.email_supervisor}`} style={{ color: '#0284c7', textDecoration: 'none' }}>
-                              ✉️ {m.email_supervisor}
+                            <a href={`mailto:${m.email_supervisor}`} style={{ color: '#0284c7', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Mail size={14} /> {m.email_supervisor}
                             </a>
                           </td>
                           <td style={{ padding: '14px' }}>
