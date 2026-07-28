@@ -161,3 +161,123 @@ export const submitMitraPenilaianApi = async (token, payload) => {
     };
   }
 };
+
+/**
+ * 5. Ambil Daftar Pendaftaran Mahasiswa Magang Masuk ke Perusahaan Mitra
+ * GET /api/v1/mitra/pendaftaran-magang
+ */
+export const getMitraPendaftarListApi = async (token) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mitra/pendaftaran-magang`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'Gagal mengambil daftar pendaftaran magang',
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data || [],
+    };
+  } catch (error) {
+    console.error('Error pada getMitraPendaftarListApi:', error);
+    return {
+      success: false,
+      message: 'Gagal terhubung ke server API.',
+    };
+  }
+};
+
+/**
+ * 6. ACC / Disetujui Pendaftaran Mahasiswa Magang oleh Mitra
+ * POST /api/v1/mitra/pendaftaran-magang/acc
+ */
+export const accPendaftarMitraApi = async (token, payload) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mitra/pendaftaran-magang/acc`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        id_pengajuan: payload.id_pengajuan,
+        nim: payload.nim,
+        catatan_mitra: payload.catatan_mitra || 'Selamat! Pendaftaran magang Anda telah disetujui resmi oleh Mitra Industri.',
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'Gagal menyetujui pendaftaran magang',
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('Error pada accPendaftarMitraApi:', error);
+    return {
+      success: false,
+      message: 'Gagal terhubung ke server API.',
+    };
+  }
+};
+
+/**
+ * 7. Tolak Pendaftaran Mahasiswa Magang oleh Mitra
+ * POST /api/v1/mitra/pendaftaran-magang/tolak
+ */
+export const tolakPendaftarMitraApi = async (token, payload) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mitra/pendaftaran-magang/tolak`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        id_pengajuan: payload.id_pengajuan,
+        nim: payload.nim,
+        catatan_mitra: payload.catatan_mitra || 'Mohon maaf, kualifikasi/kuota magang belum sesuai.',
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'Gagal menolak pendaftaran magang',
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('Error pada tolakPendaftarMitraApi:', error);
+    return {
+      success: false,
+      message: 'Gagal terhubung ke server API.',
+    };
+  }
+};
