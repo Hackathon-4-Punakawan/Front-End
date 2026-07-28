@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import amikomLogo from '../../../assets/amikom.png';
+import unikaLogo from '../../../assets/unika-logo.svg';
 import PengajuanMagang from './PengajuanMagang';
 import StatusKonversi from './StatusKonversi';
 import {
@@ -93,9 +94,7 @@ const MahasiswaDashboard = () => {
       <aside className={`custom-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-logo">
           <div className="logo-icon">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#B432F2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <img src={unikaLogo} alt="UNIKA Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
           </div>
           {!isSidebarCollapsed && (
             <div className="logo-text">

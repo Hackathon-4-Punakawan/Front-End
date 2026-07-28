@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import MahasiswaDashboard from './pages/dashboard/mahasiswa/MahasiswaDashboard';
-import DosenDashboard from './pages/dashboard/DosenDashboard';
+import DosenDashboard from './pages/dashboard/dosen/DosenDashboard';
 import MitraDashboard from './pages/dashboard/MitraDashboard';
 import KaprodiDashboard from './pages/dashboard/KaprodiDashboard';
 import './App.css';

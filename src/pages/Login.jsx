@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import { User, Lock, ArrowRight, AlertCircle, KeyRound } from 'lucide-react';
+import unikaLogo from '../assets/unika-logo.svg';
 
 const Login = () => {
   const { login, currentUser, getRoleLabel } = useAuth();
@@ -31,7 +32,7 @@ const Login = () => {
       setPassword('password123');
     } else if (role === 'dosen') {
       setIdentityInput('0412088501');
-      setPassword('0412088501');
+      setPassword('password123');
     } else if (role === 'mitra') {
       setIdentityInput('hr@google.co.id');
       setPassword('password123');
@@ -75,6 +76,9 @@ const Login = () => {
   return (
     <div className="auth-container fade-in">
       <Card>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <img src={unikaLogo} alt="UNIKA Logo" style={{ height: '56px', width: 'auto' }} />
+        </div>
         <h1 className="auth-title" style={{ textAlign: 'center' }} >Selamat Datang di Konversi Amikom</h1>
         <p className="auth-subtitle">Login Menggunakan Akun Amikom</p>
 
