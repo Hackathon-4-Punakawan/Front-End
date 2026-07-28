@@ -417,18 +417,7 @@ const KaprodiDashboard = () => {
     : defaultDplLecturers;
 
   // Data penugasan Dosen Pembimbing oleh Kaprodi
-  const [proposals, setProposals] = useState([
-    { id: 1, nim: '21.11.4001', name: 'Budi Santoso', company: 'Google Indonesia', dosenPembimbing: 'Dr. Indah Susanti, M.Kom', dosenEmail: 'indah.susanti@amikom.ac.id', subjectsCount: 2, totalSks: 8, status: 'Ditetapkan' },
-    { id: 2, nim: '21.11.4002', name: 'Alif Pratama', company: 'Apple Inc.', dosenPembimbing: 'Andi Sunyoto, M.Kom.', dosenEmail: 'andi.sunyoto@amikom.ac.id', subjectsCount: 4, totalSks: 16, status: 'Belum Ditetapkan' },
-    { id: 3, nim: '21.11.4003', name: 'Sonia Clarissa', company: 'Google Indonesia', dosenPembimbing: 'Drs. Kusrini, M.Kom.', dosenEmail: 'kusrini@amikom.ac.id', subjectsCount: 3, totalSks: 12, status: 'Ditetapkan' },
-    { id: 4, nim: '21.11.4004', name: 'Rian Hidayat', company: 'Tokopedia', dosenPembimbing: 'Bambang Kurniawan, M.Eng', dosenEmail: 'bambang.k@amikom.ac.id', subjectsCount: 3, totalSks: 9, status: 'Belum Ditetapkan' },
-    { id: 5, nim: '21.11.4005', name: 'Siti Aminah', company: 'Traveloka', dosenPembimbing: 'Dharmawan, M.T.', dosenEmail: 'dharmawan@amikom.ac.id', subjectsCount: 2, totalSks: 6, status: 'Ditetapkan' },
-    { id: 6, nim: '21.11.4006', name: 'Fajar Nugraha', company: 'Gojek', dosenPembimbing: 'Fajar Masya, M.T.', dosenEmail: 'fajar.masya@amikom.ac.id', subjectsCount: 3, totalSks: 8, status: 'Belum Ditetapkan' },
-    { id: 7, nim: '21.11.4007', name: 'Nabila Putri', company: 'Shopee Indonesia', dosenPembimbing: 'Ir. Amiruddin, M.T.', dosenEmail: 'amiruddin@amikom.ac.id', subjectsCount: 4, totalSks: 14, status: 'Belum Ditetapkan' },
-    { id: 8, nim: '21.11.4008', name: 'Dimas Saputra', company: 'Bukalapak', dosenPembimbing: 'Niken Hendrakusma, M.Kom', dosenEmail: 'niken.h@amikom.ac.id', subjectsCount: 2, totalSks: 7, status: 'Ditetapkan' },
-    { id: 9, nim: '21.11.4009', name: 'Reza Rahadian', company: 'Blibli.com', dosenPembimbing: 'Romi Satria Wahono, Ph.D.', dosenEmail: 'romi.satria@amikom.ac.id', subjectsCount: 3, totalSks: 10, status: 'Belum Ditetapkan' },
-    { id: 10, nim: '21.11.4010', name: 'Ayu Lestari', company: 'Bank Mandiri', dosenPembimbing: 'Widodo, M.Kom', dosenEmail: 'widodo@amikom.ac.id', subjectsCount: 2, totalSks: 6, status: 'Ditetapkan' }
-  ]);
+  const [proposals, setProposals] = useState([]);
 
   const handleDosenChange = (studentId, newDosenName) => {
     const foundLecturer = availableLecturers.find(l => l.name === newDosenName);
@@ -455,22 +444,10 @@ const KaprodiDashboard = () => {
   };
 
   // Data History & Verifikasi Berkas Pengajuan Magang
-  const [proposalsReviewData, setProposalsReviewData] = useState([
-    { id: 1, name: 'Budi Santoso', nim: '22.11.4321', company: 'Google Indonesia', files: ['Proposal_Cloud.pdf', 'Transkrip_IPK.pdf', 'Surat_Rekomendasi.pdf'], collected: 3, total: 8, hasilBerkas: 'Belum Lengkap' },
-    { id: 2, name: 'Alif Pratama', nim: '22.11.4302', company: 'Apple Inc.', files: ['Proposal_iOS_Apple.pdf', 'Transkrip_IPK.pdf', 'Surat_Rekomendasi.pdf', 'SPTJM.pdf', 'CV_ATS.pdf', 'Sertifikat.pdf', 'KTP.pdf', 'Surat_Izin.pdf'], collected: 8, total: 8, hasilBerkas: 'ACC Berkas' },
-    { id: 3, name: 'Sonia Clarissa', nim: '22.11.4299', company: 'Google Indonesia', files: ['Proposal_Data.pdf', 'Transkrip_IPK.pdf', 'Surat_Rekomendasi.pdf', 'SPTJM.pdf', 'CV_ATS.pdf', 'Sertifikat.pdf', 'KTP.pdf', 'Surat_Izin.pdf'], collected: 8, total: 8, hasilBerkas: 'ACC Berkas' },
-    { id: 4, name: 'Rian Hidayat', nim: '22.11.4288', company: 'Tokopedia', files: ['Proposal_DataAnalyst.pdf', 'Surat_Rekomendasi.pdf'], collected: 2, total: 8, hasilBerkas: 'Belum Lengkap' },
-    { id: 5, name: 'Siti Aminah', nim: '22.11.4215', company: 'Traveloka', files: ['Proposal_QA.pdf', 'Transkrip_IPK.pdf', 'Surat_Rekomendasi.pdf', 'SPTJM.pdf', 'CV_ATS.pdf'], collected: 5, total: 8, hasilBerkas: 'Belum Lengkap' }
-  ]);
+  const [proposalsReviewData, setProposalsReviewData] = useState([]);
 
   // Data Penilaian Proposal & Rilis Nilai Akhir (Website Informatika Flowchart)
-  const [finalGradesData, setFinalGradesData] = useState([
-    { id: 1, name: 'Budi Santoso', nim: '22.11.4321', company: 'Google Indonesia', proposalFile: 'Proposal_Cloud_Architecture_Budi.pdf', reportFile: 'Laporan_Akhir_Magang_Google_Budi.pdf', proposalScore: 92, partnerScore: 95, finalGrade: 'A (4.00)', status: 'Draft' },
-    { id: 2, name: 'Alif Pratama', nim: '22.11.4302', company: 'Apple Inc.', proposalFile: 'Proposal_iOS_Apple_Alif.pdf', reportFile: 'Laporan_Akhir_Magang_Apple_Alif.pdf', proposalScore: 90, partnerScore: 92, finalGrade: 'A (4.00)', status: 'Draft' },
-    { id: 3, name: 'Sonia Clarissa', nim: '22.11.4299', company: 'Google Indonesia', proposalFile: 'Proposal_Data_Engineering_Sonia.pdf', reportFile: 'Laporan_Akhir_Magang_Google_Sonia.pdf', proposalScore: 88, partnerScore: 90, finalGrade: 'A- (3.75)', status: 'Sudah Dirilis ke Website' },
-    { id: 4, name: 'Rian Hidayat', nim: '22.11.4288', company: 'Tokopedia', proposalFile: 'Proposal_Data_Analyst_Rian.pdf', reportFile: 'Laporan_Akhir_Magang_Tokopedia_Rian.pdf', proposalScore: 85, partnerScore: 88, finalGrade: 'B+ (3.50)', status: 'Draft' },
-    { id: 5, name: 'Siti Aminah', nim: '22.11.4215', company: 'Traveloka', proposalFile: 'Proposal_QA_Automation_Siti.pdf', reportFile: 'Laporan_Akhir_Magang_Traveloka_Siti.pdf', proposalScore: 95, partnerScore: 96, finalGrade: 'A (4.00)', status: 'Sudah Dirilis ke Website' }
-  ]);
+  const [finalGradesData, setFinalGradesData] = useState([]);
 
   const handleAccProposal = (id) => {
     const target = proposalsReviewData.find(p => p.id === id);
@@ -906,7 +883,7 @@ const KaprodiDashboard = () => {
                   <GraduationCap size={24} />
                 </div>
                 <div className="stat-info">
-                  <span className="stat-value">148 Orang</span>
+                  <span className="stat-value">{mahasiswaListApi.length > 0 ? `${mahasiswaListApi.length} Orang` : '0 Orang'}</span>
                   <span className="stat-label">Mahasiswa Magang</span>
                 </div>
               </div>
@@ -928,7 +905,7 @@ const KaprodiDashboard = () => {
                   <Mail size={24} />
                 </div>
                 <div className="stat-info">
-                  <span className="stat-value">18 Dosen</span>
+                  <span className="stat-value">{dosenListApi.length > 0 ? `${dosenListApi.length} Dosen` : (adminStats?.total_dpl ? `${adminStats.total_dpl} Dosen` : '1 Dosen')}</span>
                   <span className="stat-label">Dosen Pembimbing Siap</span>
                 </div>
               </div>
@@ -938,7 +915,7 @@ const KaprodiDashboard = () => {
                   <Award size={24} />
                 </div>
                 <div className="stat-info">
-                  <span className="stat-value">98.2%</span>
+                  <span className="stat-value">{proposals.length > 0 ? '98.2%' : '0%'}</span>
                   <span className="stat-label">Email Penugasan Terkirim</span>
                 </div>
               </div>
@@ -965,7 +942,14 @@ const KaprodiDashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredProposals.map((prop) => (
+                      {filteredProposals.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b', fontSize: '14px', fontWeight: '600' }}>
+                            📌 Belum ada pengajuan magang atau penetapan DPL mahasiswa saat ini.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredProposals.map((prop) => (
                         <tr key={prop.id}>
                           <td style={{ padding: '14px 10px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1066,9 +1050,8 @@ const KaprodiDashboard = () => {
                                 </button>
                               </div>
                             )}
-                          </td>
                         </tr>
-                      ))}
+                      )))}
                     </tbody>
                   </table>
                 </div>
