@@ -691,86 +691,88 @@ const MahasiswaDashboard = () => {
             <div className="profile-badge">
               <div className="profile-info">
                 <span className="profile-name">{currentUser?.name || 'Andi Pratama'}</span>
-                <span className="profile-role">Mahasiswa Informatika</span>
-              </div>
-              <div className="profile-avatar">
-                <User size={18} />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content Body */}
+                <span className="profile-role">Maha        {/* Content Body */}
         <div className="viewport-content">
           {/* TAB 1: MAIN DASHBOARD */}
-          {activeTab === 'dashboard' && (
-            <div className="tab-pane fade-in">
-              <div className="page-heading">
-                <h1 className="main-title">Dashboard Mahasiswa</h1>
-              </div>
+          {activeTab === 'dashboard' && (() => {
+            const hasActiveApplication = Boolean(
+              dashboardData?.has_pengajuan === true ||
+              (dashboardData?.hero_card?.nama_instansi && dashboardData?.hero_card?.nama_instansi !== '-') ||
+              proposals.length > 0 ||
+              idMagangStatus === 'approved' ||
+              (conversionState.status !== 'none' && conversionState.courses.length > 0)
+            );
 
-              {isInitialLoading ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '80px 20px',
-                  background: '#ffffff',
-                  borderRadius: '20px',
-                  border: '1px solid #f1f5f9',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
-                  marginTop: '12px'
-                }}>
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    border: '3.5px solid #e2e8f0',
-                    borderTopColor: '#B432F2',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite'
-                  }} />
-                  <span style={{ marginTop: '14px', color: '#64748b', fontSize: '13px', fontWeight: '600' }}>
-                    Memuat data dashboard...
-                  </span>
-                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            return (
+              <div className="tab-pane fade-in">
+                <div className="page-heading">
+                  <h1 className="main-title">Dashboard Mahasiswa</h1>
                 </div>
-              ) : (dashboardData && dashboardData.has_pengajuan === false) || (conversionState.status === 'none' && (!dashboardData || dashboardData.has_pengajuan === false)) ? (
-                // Clean Welcome & Onboarding Dashboard for New Accounts / Unsubmitted State
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeIn 0.3s ease-in-out' }}>
-                  {/* Welcome Banner */}
+
+                {isInitialLoading ? (
                   <div style={{
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
-                    borderRadius: '24px',
-                    padding: '32px 36px',
-                    color: '#ffffff',
-                    boxShadow: '0 12px 32px rgba(124, 58, 237, 0.2)',
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '24px',
-                    flexWrap: 'wrap'
+                    justifyContent: 'center',
+                    padding: '80px 20px',
+                    background: '#ffffff',
+                    borderRadius: '20px',
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                    marginTop: '12px'
                   }}>
-                    <div style={{ maxWidth: '640px' }}>
-                      <span style={{
-                        background: 'rgba(255, 255, 255, 0.2)',
-                        color: '#ffffff',
-                        padding: '6px 14px',
-                        borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        letterSpacing: '0.5px',
-                        display: 'inline-block',
-                        marginBottom: '14px',
-                        backdropFilter: 'blur(4px)'
-                      }}>
-                        ✨ PORTAL KONVERSI SKS OBE MAGANG
-                      </span>
-                      <h2 style={{ fontSize: '26px', fontWeight: '800', margin: '0 0 10px 0', lineHeight: '1.3', fontFamily: "'Outfit', sans-serif" }}>
-                        Selamat Datang, {currentUser?.name || dashboardData?.mahasiswa?.nama || 'Mahasiswa Informatika'}! 👋
-                      </h2>
-                      <p style={{ fontSize: '14.5px', opacity: 0.95, margin: 0, lineHeight: '1.6' }}>
-                        Anda belum memiliki pengajuan magang atau konversi SKS S-1 Informatika yang aktif saat ini. Silakan mulai pendaftaran Anda untuk mendapatkan konversi hingga 20 SKS!
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      border: '3.5px solid #e2e8f0',
+                      borderTopColor: '#B432F2',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite'
+                    }} />
+                    <span style={{ marginTop: '14px', color: '#64748b', fontSize: '13px', fontWeight: '600' }}>
+                      Memuat data dashboard...
+                    </span>
+                    <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                  </div>
+                ) : !hasActiveApplication ? (
+                  // Clean Welcome & Onboarding Dashboard for New Accounts / Unsubmitted State
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeIn 0.3s ease-in-out' }}>
+                    {/* Welcome Banner */}
+                    <div style={{
+                      background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                      borderRadius: '24px',
+                      padding: '32px 36px',
+                      color: '#ffffff',
+                      boxShadow: '0 12px 32px rgba(124, 58, 237, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '24px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <div style={{ maxWidth: '640px' }}>
+                        <span style={{
+                          background: 'rgba(255, 255, 255, 0.2)',
+                          color: '#ffffff',
+                          padding: '6px 14px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          letterSpacing: '0.5px',
+                          display: 'inline-block',
+                          marginBottom: '14px',
+                          backdropFilter: 'blur(4px)'
+                        }}>
+                          📌 STATUS: BELUM ADA PENGAJUAN MAGANG
+                        </span>
+                        <h2 style={{ fontSize: '26px', fontWeight: '800', margin: '0 0 10px 0', lineHeight: '1.3', fontFamily: "'Outfit', sans-serif" }}>
+                          Silakan Melakukan Pengajuan Magang Terlebih Dahulu
+                        </h2>
+                        <p style={{ fontSize: '14.5px', opacity: 0.95, margin: 0, lineHeight: '1.6' }}>
+                          Halo, {currentUser?.name || dashboardData?.mahasiswa?.nama || 'Mahasiswa Informatika'}! Anda belum memiliki pengajuan magang atau konversi SKS S-1 Informatika yang aktif saat ini. Klik tombol di bawah ini untuk memulai pengajuan magang mandiri.
+                        </p>
+                      </div>m memiliki pengajuan magang atau konversi SKS S-1 Informatika yang aktif saat ini. Silakan mulai pendaftaran Anda untuk mendapatkan konversi hingga 20 SKS!
                       </p>
                     </div>
 
@@ -1213,7 +1215,8 @@ const MahasiswaDashboard = () => {
                 </>
               )}
             </div>
-          )}
+          );
+        })()}
 
           {/* TAB 2: PENGAJUAN MAGANG */}
           {activeTab === 'internship' && (
