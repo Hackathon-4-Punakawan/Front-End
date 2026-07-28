@@ -436,7 +436,7 @@
 
 .info-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 24px;
 }
 
@@ -686,7 +686,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   background-color: #fcfbfe;
 }
 
@@ -700,6 +700,244 @@
   height: 72px;
   position: sticky;
   top: 0;
-  z-index: 101;
+  z-index: 100;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+/* ==========================================================================
+   PURPLE & WHITE GRADIENT THEME (DOSEN DASHBOARD & CARD RE-STYLING)
+   ========================================================================== */
+.purple-gradient-theme {
+  background: linear-gradient(135deg, #FAF5FF 0%, #FFFFFF 40%, #F3E8FF 100%) !important;
+  color: #1e1b4b !important;
+}
+
+.purple-gradient-theme .main-viewport {
+  background: linear-gradient(135deg, #FAF5FF 0%, #FFFFFF 40%, #F3E8FF 100%) !important;
+}
+
+.purple-gradient-theme .custom-sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #faf5ff 100%) !important;
+  border-right: 1px solid #e9d5ff !important;
+}
+
+.purple-gradient-theme .custom-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 245, 255, 0.95) 100%) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 1px solid #e9d5ff !important;
+  box-shadow: 0 4px 20px rgba(180, 50, 242, 0.08) !important;
+}
+
+.purple-gradient-theme .welcome-section {
+  background: linear-gradient(135deg, #6b21a8 0%, #B432F2 50%, #c084fc 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 10px 25px -5px rgba(180, 50, 242, 0.35) !important;
+  color: #ffffff !important;
+  border-radius: 20px;
+}
+
+.purple-gradient-theme .welcome-title {
+  color: #ffffff !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.purple-gradient-theme .welcome-desc {
+  color: #f3e8ff !important;
+  font-size: 15px !important;
+  line-height: 1.6;
+}
+
+.purple-gradient-theme .welcome-desc strong {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.22);
+  padding: 2px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+
+.purple-gradient-theme .stat-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fbf5ff 60%, #f3e8ff 100%) !important;
+  border: 1px solid #e9d5ff !important;
+  box-shadow: 0 4px 15px rgba(180, 50, 242, 0.08) !important;
+  border-radius: 16px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.purple-gradient-theme .stat-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: #B432F2 !important;
+  box-shadow: 0 12px 24px -5px rgba(180, 50, 242, 0.22) !important;
+}
+
+.purple-gradient-theme .stat-icon {
+  background: linear-gradient(135deg, #B432F2 0%, #c084fc 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(180, 50, 242, 0.3) !important;
+  border-radius: 14px !important;
+}
+
+.purple-gradient-theme .stat-value {
+  color: #3b0764 !important;
+  font-weight: 800 !important;
+  font-size: 22px !important;
+}
+
+.purple-gradient-theme .stat-label {
+  color: #B432F2 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.purple-gradient-theme .main-panel,
+.purple-gradient-theme .sidebar-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #faf5ff 100%) !important;
+  border: 1px solid #e9d5ff !important;
+  box-shadow: 0 8px 25px rgba(180, 50, 242, 0.08) !important;
+  border-radius: 20px !important;
+}
+
+.purple-gradient-theme .panel-title {
+  color: #B432F2 !important;
+  border-bottom: 1px solid #e9d5ff !important;
+  font-weight: 700 !important;
+}
+
+.purple-gradient-theme th {
+  color: #B432F2 !important;
+  font-weight: 700 !important;
+  background: #f3e8ff;
+  border-bottom: 2px solid #e9d5ff !important;
+}
+
+.purple-gradient-theme td {
+  border-bottom: 1px solid #f3e8ff !important;
+}
+
+.purple-gradient-theme tr:hover td {
+  background-color: #fcf5ff !important;
+}
+
+.purple-gradient-theme td span {
+  color: #1e1b4b;
+}
+
+.purple-gradient-theme td span.sub-text {
+  color: #B432F2 !important;
+}
+
+.purple-gradient-theme .list-item {
+  background: linear-gradient(135deg, #ffffff 0%, #fcf8ff 100%) !important;
+  border: 1px solid #f3e8ff !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  margin-bottom: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.purple-gradient-theme .list-item:hover {
+  border-color: #B432F2 !important;
+  box-shadow: 0 4px 12px rgba(180, 50, 242, 0.1) !important;
+}
+
+.purple-gradient-theme .item-title {
+  color: #3b0764 !important;
+  font-weight: 700 !important;
+}
+
+.purple-gradient-theme .item-desc {
+  color: #6b7280 !important;
+}
+
+/* HEADER ACTIONS & PROFILE BADGE (MATCHING MAHASISWA HEADER) */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+  background-color: #f8ebff;
+  color: #B432F2;
+}
+
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+}
+
+.profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  background-color: #fdfaff;
+  border: 1px solid #f1e9f7;
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(180, 50, 242, 0.04);
+}
+
+.profile-info {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.profile-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.profile-role {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+.profile-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #B432F2 0%, #9333ea 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  box-shadow: 0 4px 10px rgba(180, 50, 242, 0.3);
 }
 
