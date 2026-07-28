@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import amikomLogo from '../../../assets/amikom.png';
@@ -11,6 +11,7 @@ import { getMySuratPengantarStatusApi } from '../../../services/suratPengantarSe
 import { getMyPengajuanDplStatusApi } from '../../../services/pengajuanDplService';
 import { getMyKonversiStatusApi } from '../../../services/konversiMatkulService';
 import { submitSuratAkhirApi, getMySuratAkhirStatusApi } from '../../../services/suratAkhirService';
+import { getMyLogbookApi, submitLogbookApi } from '../../../services/logbookService';
 import {
   LogOut,
   LayoutDashboard,
@@ -37,7 +38,14 @@ import {
   User,
   Save,
   Phone,
-  Mail
+  Mail,
+  ClipboardList,
+  Send,
+  RefreshCcw,
+  CalendarDays,
+  CheckCircle,
+  XCircle,
+  Hourglass
 } from 'lucide-react';
 
 const PREDEFINED_COURSES = [
@@ -84,6 +92,21 @@ const MahasiswaDashboard = () => {
   // Full Mahasiswa Dashboard Backend API state
   const [dashboardData, setDashboardData] = useState(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // ── LOGBOOK STATE ──────────────────────────────────────────────────
+  const [logbookList, setLogbookList] = useState([]);
+  const [logbookSummary, setLogbookSummary] = useState({ total_logbook: 0, disetujui: 0, pending: 0, revisi: 0 });
+  const [isLoadingLogbook, setIsLoadingLogbook] = useState(false);
+  const [isSubmittingLogbook, setIsSubmittingLogbook] = useState(false);
+  const [showLogbookForm, setShowLogbookForm] = useState(false);
+  const [logbookForm, setLogbookForm] = useState({
+    minggu_ke: '',
+    tanggal_mulai: '',
+    tanggal_selesai: '',
+    ringkasan_kegiatan: '',
+    file_lampiran_url: '',
+  });
+  const [logbookFilter, setLogbookFilter] = useState('semua'); // 'semua' | 'disetujui' | 'pending' | 'revisi'
 
   const token = currentUser?.token || localStorage.getItem('edushift_token');
 
@@ -399,6 +422,54 @@ const MahasiswaDashboard = () => {
     });
   };
 
+  // ── LOGBOOK HANDLERS ───────────────────────────────────────────────
+  const fetchLogbook = async () => {
+    if (!token) return;
+    setIsLoadingLogbook(true);
+    try {
+      const res = await getMyLogbookApi(token);
+      if (res.success && res.data) {
+        setLogbookList(res.data.items || []);
+        setLogbookSummary(res.data.ringkasan || { total_logbook: 0, disetujui: 0, pending: 0, revisi: 0 });
+      }
+    } catch (err) {
+      console.error('fetchLogbook error:', err);
+    } finally {
+      setIsLoadingLogbook(false);
+    }
+  };
+
+  const handleSubmitLogbook = async (e) => {
+    e.preventDefault();
+    if (!logbookForm.ringkasan_kegiatan.trim()) {
+      triggerAlert('Validasi Form', 'Ringkasan kegiatan wajib diisi!', 'warning');
+      return;
+    }
+    setIsSubmittingLogbook(true);
+    try {
+      const payload = {
+        minggu_ke: logbookForm.minggu_ke || (logbookList.length + 1),
+        tanggal_mulai: logbookForm.tanggal_mulai || new Date().toISOString().split('T')[0],
+        tanggal_selesai: logbookForm.tanggal_selesai || new Date().toISOString().split('T')[0],
+        ringkasan_kegiatan: logbookForm.ringkasan_kegiatan.trim(),
+        file_lampiran_url: logbookForm.file_lampiran_url || '',
+      };
+      const res = await submitLogbookApi(token, payload);
+      if (res.success) {
+        triggerAlert('Logbook Terkirim! ✅', res.message || 'Logbook berhasil disimpan dan dikirim ke Supervisor Mitra.', 'success');
+        setShowLogbookForm(false);
+        setLogbookForm({ minggu_ke: '', tanggal_mulai: '', tanggal_selesai: '', ringkasan_kegiatan: '', file_lampiran_url: '' });
+        await fetchLogbook(); // refresh list
+      } else {
+        triggerAlert('Gagal Submit', res.message || 'Terjadi kesalahan saat menyimpan logbook.', 'error');
+      }
+    } catch (err) {
+      triggerAlert('Error', 'Gagal terhubung ke server.', 'error');
+    } finally {
+      setIsSubmittingLogbook(false);
+    }
+  };
+
   return (
     <div className="custom-dashboard-container">
       {/* 1. Left Sidebar */}
@@ -431,6 +502,30 @@ const MahasiswaDashboard = () => {
             >
               <FileCheck2 size={18} />
               {!isSidebarCollapsed && <span>Pengajuan Magang</span>}
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('logbook');
+                // fetch logbook on first open
+                if (logbookList.length === 0) fetchLogbook();
+              }}
+              className={`nav-item ${activeTab === 'logbook' ? 'active' : ''}`}
+            >
+              <ClipboardList size={18} />
+              {!isSidebarCollapsed && <span>Logbook Magang</span>}
+              {!isSidebarCollapsed && logbookSummary.pending > 0 && (
+                <span style={{
+                  marginLeft: 'auto',
+                  background: '#f59e0b',
+                  color: '#fff',
+                  borderRadius: '9px',
+                  padding: '1px 7px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  minWidth: '20px',
+                  textAlign: 'center'
+                }}>{logbookSummary.pending}</span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('history')}
@@ -1083,7 +1178,335 @@ const MahasiswaDashboard = () => {
             />
           )}
 
-          {/* TAB 3: RIWAYAT MAGANG PER SEMESTER */}
+          {/* TAB 3: LOGBOOK HARIAN / MINGGUAN MAGANG */}
+          {activeTab === 'logbook' && (
+            <div className="tab-pane fade-in">
+              <div className="page-heading" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h1 className="main-title">Logbook Magang</h1>
+                  <p style={{ color: '#64748b', fontSize: '13px', marginTop: '2px' }}>Catat aktivitas harian / mingguan magang Anda dan pantau verifikasi Supervisor Mitra.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button
+                    onClick={fetchLogbook}
+                    disabled={isLoadingLogbook}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '8px 16px', borderRadius: '10px',
+                      background: '#f8f9fa', border: '1px solid #e9e2f2',
+                      color: '#64748b', fontWeight: '600', fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <RefreshCcw size={14} style={isLoadingLogbook ? { animation: 'spin 1s linear infinite' } : {}} />
+                    Refresh
+                  </button>
+                  <button
+                    onClick={() => setShowLogbookForm(!showLogbookForm)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      padding: '10px 20px', borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #B432F2, #7c3aed)',
+                      color: '#fff', fontWeight: '700', fontSize: '13px',
+                      border: 'none', cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(180, 50, 242, 0.3)'
+                    }}
+                  >
+                    <Plus size={16} />
+                    {showLogbookForm ? 'Tutup Form' : 'Tambah Logbook'}
+                  </button>
+                </div>
+              </div>
+
+              {/* ── STATS CARDS LOGBOOK ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', margin: '20px 0' }}>
+                {[
+                  { label: 'Total Logbook', val: logbookSummary.total_logbook, color: '#B432F2', bg: '#f8ebff', icon: <ClipboardList size={20} /> },
+                  { label: 'Disetujui', val: logbookSummary.disetujui, color: '#10b981', bg: '#ecfdf5', icon: <CheckCircle size={20} /> },
+                  { label: 'Pending Review', val: logbookSummary.pending, color: '#f59e0b', bg: '#fffbeb', icon: <Hourglass size={20} /> },
+                  { label: 'Perlu Revisi', val: logbookSummary.revisi, color: '#ef4444', bg: '#fef2f2', icon: <XCircle size={20} /> },
+                ].map((item, i) => (
+                  <div key={i} style={{
+                    background: '#fff', borderRadius: '16px', padding: '18px 20px',
+                    border: '1px solid #f1f5f9', boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+                    display: 'flex', alignItems: 'center', gap: '14px'
+                  }}>
+                    <div style={{
+                      width: '44px', height: '44px', borderRadius: '12px',
+                      background: item.bg, color: item.color,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      {item.icon}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '24px', fontWeight: '800', color: item.color, lineHeight: 1 }}>{item.val}</div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600', marginTop: '2px' }}>{item.label}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── FORM SUBMIT LOGBOOK ── */}
+              {showLogbookForm && (
+                <div style={{
+                  background: '#fff', borderRadius: '20px', padding: '28px 28px 24px',
+                  border: '1px solid #e9e2f2', boxShadow: '0 8px 32px rgba(180,50,242,0.08)',
+                  marginBottom: '24px', animation: 'fadeInDown 0.3s ease'
+                }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ClipboardList size={20} color="#B432F2" />
+                    Form Tambah Logbook Mingguan
+                  </h3>
+                  <form onSubmit={handleSubmitLogbook}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div>
+                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Minggu Ke</label>
+                        <input
+                          type="number" min="1" max="52"
+                          placeholder={`Minggu ${logbookList.length + 1}`}
+                          value={logbookForm.minggu_ke}
+                          onChange={(e) => setLogbookForm(p => ({ ...p, minggu_ke: e.target.value }))}
+                          style={{
+                            width: '100%', padding: '10px 14px', borderRadius: '10px',
+                            border: '1.5px solid #e9e2f2', fontSize: '13px',
+                            fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Tanggal Mulai</label>
+                        <input
+                          type="date"
+                          value={logbookForm.tanggal_mulai}
+                          onChange={(e) => setLogbookForm(p => ({ ...p, tanggal_mulai: e.target.value }))}
+                          style={{
+                            width: '100%', padding: '10px 14px', borderRadius: '10px',
+                            border: '1.5px solid #e9e2f2', fontSize: '13px',
+                            fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Tanggal Selesai</label>
+                        <input
+                          type="date"
+                          value={logbookForm.tanggal_selesai}
+                          onChange={(e) => setLogbookForm(p => ({ ...p, tanggal_selesai: e.target.value }))}
+                          style={{
+                            width: '100%', padding: '10px 14px', borderRadius: '10px',
+                            border: '1.5px solid #e9e2f2', fontSize: '13px',
+                            fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Ringkasan Kegiatan <span style={{ color: '#ef4444' }}>*</span></label>
+                      <textarea
+                        required
+                        rows={4}
+                        placeholder="Deskripsikan kegiatan yang dilakukan selama minggu ini secara detail (tools yang digunakan, progress pekerjaan, dll)..."
+                        value={logbookForm.ringkasan_kegiatan}
+                        onChange={(e) => setLogbookForm(p => ({ ...p, ringkasan_kegiatan: e.target.value }))}
+                        style={{
+                          width: '100%', padding: '12px 14px', borderRadius: '10px',
+                          border: '1.5px solid #e9e2f2', fontSize: '13px',
+                          fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Link Lampiran (Opsional)</label>
+                      <input
+                        type="url"
+                        placeholder="https://drive.google.com/..."
+                        value={logbookForm.file_lampiran_url}
+                        onChange={(e) => setLogbookForm(p => ({ ...p, file_lampiran_url: e.target.value }))}
+                        style={{
+                          width: '100%', padding: '10px 14px', borderRadius: '10px',
+                          border: '1.5px solid #e9e2f2', fontSize: '13px',
+                          fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowLogbookForm(false)}
+                        style={{
+                          padding: '10px 20px', borderRadius: '10px',
+                          background: '#f1f5f9', border: 'none', color: '#64748b',
+                          fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                        }}
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmittingLogbook}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          padding: '10px 24px', borderRadius: '10px',
+                          background: isSubmittingLogbook ? '#c4b5d9' : 'linear-gradient(135deg, #B432F2, #7c3aed)',
+                          color: '#fff', fontWeight: '700', fontSize: '13px',
+                          border: 'none', cursor: isSubmittingLogbook ? 'not-allowed' : 'pointer',
+                          boxShadow: '0 4px 14px rgba(180,50,242,0.25)'
+                        }}
+                      >
+                        {isSubmittingLogbook ? (
+                          <><RefreshCcw size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> Mengirim...</>
+                        ) : (
+                          <><Send size={14} /> Kirim Logbook ke Supervisor</>  
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* ── FILTER TABS ── */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', flexWrap: 'wrap' }}>
+                {['semua', 'disetujui', 'pending', 'revisi'].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setLogbookFilter(f)}
+                    style={{
+                      padding: '7px 18px', borderRadius: '20px', fontSize: '12px', fontWeight: '700',
+                      border: logbookFilter === f ? 'none' : '1.5px solid #e9e2f2',
+                      background: logbookFilter === f ? 'linear-gradient(135deg, #B432F2, #7c3aed)' : '#fff',
+                      color: logbookFilter === f ? '#fff' : '#64748b',
+                      cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.2s'
+                    }}
+                  >
+                    {f === 'semua' ? `Semua (${logbookSummary.total_logbook})` :
+                     f === 'disetujui' ? `✅ Disetujui (${logbookSummary.disetujui})` :
+                     f === 'pending' ? `⏳ Pending (${logbookSummary.pending})` :
+                     `⚠️ Revisi (${logbookSummary.revisi})`}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── LOGBOOK LIST ── */}
+              {isLoadingLogbook ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+                  <RefreshCcw size={28} style={{ animation: 'spin 0.8s linear infinite', marginBottom: '12px' }} />
+                  <div style={{ fontSize: '14px', fontWeight: '600' }}>Memuat logbook...</div>
+                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                </div>
+              ) : logbookList.length === 0 ? (
+                <div style={{
+                  textAlign: 'center', padding: '60px 20px',
+                  background: '#fff', borderRadius: '20px',
+                  border: '1px solid #f1f5f9', boxShadow: '0 2px 12px rgba(0,0,0,0.03)'
+                }}>
+                  <ClipboardList size={48} color="#e2e8f0" style={{ marginBottom: '14px' }} />
+                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#94a3b8', marginBottom: '8px' }}>Belum Ada Logbook</h3>
+                  <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '20px' }}>Mulai catat aktivitas magang minggu ini dengan menekan tombol Tambah Logbook.</p>
+                  <button
+                    onClick={() => setShowLogbookForm(true)}
+                    style={{
+                      padding: '10px 24px', borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #B432F2, #7c3aed)',
+                      color: '#fff', fontWeight: '700', border: 'none', cursor: 'pointer'
+                    }}
+                  >
+                    + Tambah Logbook Pertama
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {logbookList
+                    .filter(lb => {
+                      if (logbookFilter === 'semua') return true;
+                      const s = (lb.status_verifikasi || '').toLowerCase();
+                      if (logbookFilter === 'disetujui') return s.includes('disetujui');
+                      if (logbookFilter === 'pending') return s.includes('pending');
+                      if (logbookFilter === 'revisi') return s.includes('revisi');
+                      return true;
+                    })
+                    .map((lb, idx) => {
+                      const isApproved = (lb.status_verifikasi || '').toLowerCase().includes('disetujui');
+                      const isRevisi = (lb.status_verifikasi || '').toLowerCase().includes('revisi');
+                      const statusColor = isApproved ? '#10b981' : isRevisi ? '#ef4444' : '#f59e0b';
+                      const statusBg = isApproved ? '#ecfdf5' : isRevisi ? '#fef2f2' : '#fffbeb';
+                      const StatusIcon = isApproved ? CheckCircle : isRevisi ? XCircle : Hourglass;
+                      return (
+                        <div key={lb.id_logbook || idx} style={{
+                          background: '#fff', borderRadius: '16px',
+                          border: `1px solid ${isApproved ? '#d1fae5' : isRevisi ? '#fecaca' : '#fde68a'}`,
+                          padding: '20px 24px',
+                          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+                          transition: 'all 0.2s',
+                          borderLeft: `4px solid ${statusColor}`
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                <div style={{
+                                  background: '#f8ebff', color: '#B432F2',
+                                  borderRadius: '8px', padding: '4px 12px',
+                                  fontSize: '12px', fontWeight: '800'
+                                }}>
+                                  Minggu {lb.minggu_ke}
+                                </div>
+                                <span style={{
+                                  display: 'flex', alignItems: 'center', gap: '4px',
+                                  background: statusBg, color: statusColor,
+                                  borderRadius: '8px', padding: '3px 10px',
+                                  fontSize: '11px', fontWeight: '700'
+                                }}>
+                                  <StatusIcon size={12} />
+                                  {lb.status_verifikasi || 'Pending Review'}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#94a3b8', marginBottom: '10px' }}>
+                                <CalendarDays size={13} />
+                                {lb.tanggal_mulai && lb.tanggal_selesai
+                                  ? `${new Date(lb.tanggal_mulai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – ${new Date(lb.tanggal_selesai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                  : '-'}
+                              </div>
+                              <p style={{ fontSize: '13px', color: '#374151', lineHeight: '1.6', margin: 0 }}>
+                                {lb.ringkasan_kegiatan}
+                              </p>
+                              {lb.catatan_supervisor && (
+                                <div style={{
+                                  marginTop: '12px', padding: '10px 14px',
+                                  background: '#f0fdf4', borderRadius: '10px',
+                                  borderLeft: '3px solid #10b981'
+                                }}>
+                                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', marginBottom: '4px' }}>Catatan Supervisor:</div>
+                                  <div style={{ fontSize: '12px', color: '#374151' }}>{lb.catatan_supervisor}</div>
+                                </div>
+                              )}
+                            </div>
+                            {lb.file_lampiran_url && (
+                              <a
+                                href={lb.file_lampiran_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '6px',
+                                  padding: '8px 14px', borderRadius: '10px',
+                                  background: '#f8ebff', color: '#B432F2',
+                                  fontSize: '12px', fontWeight: '700',
+                                  textDecoration: 'none', border: '1px solid #e9cfbf',
+                                  flexShrink: 0, whiteSpace: 'nowrap'
+                                }}
+                              >
+                                <Eye size={13} />
+                                Lihat Lampiran
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: RIWAYAT MAGANG PER SEMESTER */}
           {activeTab === 'history' && (
             <RiwayatSemesterTab currentUser={currentUser} />
           )}
