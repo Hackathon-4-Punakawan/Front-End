@@ -16,6 +16,7 @@ import {
   getDosenMahasiswaListApi,
   getDosenMahasiswaDetailApi,
   dosenReviewKonversiApi,
+  dosenAccAllKonversiApi,
 } from '../../../services/dosenService';
 
 // ─── Helper: Grade Calc ──────────────────────────────────────────────────────
@@ -156,6 +157,32 @@ const DosenDashboard = () => {
       triggerAlert('Error', 'Gagal terhubung ke server.', 'error');
     } finally {
       setIsSubmittingReview(false);
+    }
+  };
+
+  const [isAccingAll, setIsAccingAll] = useState(false);
+
+  const handleAccAll = async (nim) => {
+    if (!token || !nim) return;
+    setIsAccingAll(true);
+    try {
+      const res = await dosenAccAllKonversiApi(token, {
+        nim,
+        action: 'ACC',
+        catatan_dosen: 'Capaian CPMK dan modul magang disetujui DPL',
+      });
+      if (res.success) {
+        triggerAlert('ACC Semua Berhasil ⚡', 'Seluruh usulan mata kuliah konversi SKS untuk mahasiswa ini telah disetujui.', 'success');
+        fetchMahasiswaDetail(nim);
+        fetchMahasiswaList();
+        fetchStats();
+      } else {
+        triggerAlert('Gagal ACC Semua', res.message || 'Terjadi kesalahan.', 'error');
+      }
+    } catch (err) {
+      triggerAlert('Error', 'Gagal terhubung ke server.', 'error');
+    } finally {
+      setIsAccingAll(false);
     }
   };
 
@@ -781,17 +808,38 @@ const DosenDashboard = () => {
                     <BookMarked size={16} color="#B432F2" />
                     Usulan Konversi SKS ({selectedMahasiswa.konversi_sks?.total_sks || 0} SKS)
                   </span>
-                  {(() => {
-                    const st = statusStyle(selectedMahasiswa.konversi_sks?.status_konversi || '');
-                    return (
-                      <span style={{
-                        padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700',
-                        background: st.bg, color: st.color, border: `1px solid ${st.border}`
-                      }}>
-                        {selectedMahasiswa.konversi_sks?.status_konversi || '-'}
-                      </span>
-                    );
-                  })()}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {(() => {
+                      const st = statusStyle(selectedMahasiswa.konversi_sks?.status_konversi || '');
+                      return (
+                        <span style={{
+                          padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700',
+                          background: st.bg, color: st.color, border: `1px solid ${st.border}`
+                        }}>
+                          {selectedMahasiswa.konversi_sks?.status_konversi || '-'}
+                        </span>
+                      );
+                    })()}
+
+                    <button
+                      onClick={() => handleAccAll(selectedMahasiswa.mahasiswa?.nim)}
+                      disabled={isAccingAll}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        padding: '6px 16px', borderRadius: '9px', border: 'none',
+                        background: isAccingAll ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)',
+                        color: '#fff', fontSize: '12px', fontWeight: '800', cursor: isAccingAll ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 2px 10px rgba(16,185,129,0.35)',
+                        transition: 'transform 0.1s'
+                      }}
+                    >
+                      {isAccingAll ? (
+                        <><RefreshCcw size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> Memproses ACC...</>
+                      ) : (
+                        <><CheckCircle2 size={14} /> ⚡ ACC Semua (1-Klik)</>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ overflowX: 'auto', borderRadius: '14px', border: '1px solid #e9e2f2' }}>
