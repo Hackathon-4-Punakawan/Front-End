@@ -29,7 +29,16 @@ import {
   UserX,
   Inbox,
   Check,
-  Ban
+  Ban,
+  BookOpen,
+  Building2,
+  FilePlus,
+  Sparkles,
+  Edit,
+  Globe,
+  Mail,
+  Phone,
+  MapPin
 } from 'lucide-react';
 import amikomLogo from '../../assets/amikom.png';
 import unikaLogo from '../../assets/unika-logo.svg';
@@ -39,20 +48,27 @@ import {
   submitMitraPenilaianApi,
   getMitraPendaftarListApi,
   accPendaftarMitraApi,
-  tolakPendaftarMitraApi
+  tolakPendaftarMitraApi,
+  getMitraLogbookListApi,
+  accMitraLogbookApi,
+  getMitraCompanyProfileApi,
+  updateMitraCompanyProfileApi,
+  generateMitraSertifikatApi
 } from '../../services/mitraService';
 
 const MitraDashboard = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState('penerimaan'); // 'penerimaan' or 'penilaian'
+  const [activeTab, setActiveTab] = useState('penerimaan'); // 'penerimaan', 'logbook', 'penilaian', 'profile'
   const [loading, setLoading] = useState(true);
   
   // Data states
   const [statsData, setStatsData] = useState(null);
   const [studentsList, setStudentsList] = useState([]);
   const [pendaftarList, setPendaftarList] = useState([]);
+  const [logbookList, setLogbookList] = useState([]);
+  const [companyProfile, setCompanyProfile] = useState(null);
   const [mitraInfo, setMitraInfo] = useState(null);
 
   // Filter & Search states
@@ -74,6 +90,28 @@ const MitraDashboard = () => {
     item: null,
     type: 'ACC', // 'ACC' or 'TOLAK'
     catatan: ''
+  });
+
+  // Modal Logbook Review State
+  const [logbookModal, setLogbookModal] = useState({
+    show: false,
+    item: null,
+    catatan: ''
+  });
+
+  // Edit Company Profile Form State
+  const [profileForm, setProfileForm] = useState({
+    nama_perusahaan: '',
+    kategori_industri: '',
+    bidang_usaha: '',
+    alamat: '',
+    website: '',
+    nama_supervisor: '',
+    jabatan_supervisor: '',
+    email_supervisor: '',
+    telepon_supervisor: '',
+    deskripsi_lowongan: '',
+    kuota_total: 10
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -102,7 +140,32 @@ const MitraDashboard = () => {
         setPendaftarList(resPendaftar.data);
       }
 
-      // 3. Fetch Surat Akhir & Evaluation List (Penilaian TAB)
+      // 3. Fetch Logbook List (Logbook TAB)
+      const resLogbook = await getMitraLogbookListApi(token);
+      if (resLogbook.success && Array.isArray(resLogbook.data)) {
+        setLogbookList(resLogbook.data);
+      }
+
+      // 4. Fetch Company Profile (Profile TAB)
+      const resProfile = await getMitraCompanyProfileApi(token);
+      if (resProfile.success && resProfile.data) {
+        setCompanyProfile(resProfile.data);
+        setProfileForm({
+          nama_perusahaan: resProfile.data.nama_perusahaan || '',
+          kategori_industri: resProfile.data.kategori_industri || '',
+          bidang_usaha: resProfile.data.bidang_usaha || '',
+          alamat: resProfile.data.alamat || '',
+          website: resProfile.data.website || '',
+          nama_supervisor: resProfile.data.nama_supervisor || '',
+          jabatan_supervisor: resProfile.data.jabatan_supervisor || '',
+          email_supervisor: resProfile.data.email_supervisor || '',
+          telepon_supervisor: resProfile.data.telepon_supervisor || '',
+          deskripsi_lowongan: resProfile.data.deskripsi_lowongan || '',
+          kuota_total: resProfile.data.kuota_total || 10
+        });
+      }
+
+      // 5. Fetch Surat Akhir & Evaluation List (Penilaian TAB)
       const resList = await getMitraMahasiswaListApi(token, searchQuery, statusFilter === 'ALL' ? '' : statusFilter);
       if (resList.success && resList.data) {
         setStudentsList(resList.data.mahasiswa || []);
@@ -134,7 +197,7 @@ const MitraDashboard = () => {
     return 'E';
   };
 
-  // Open Modal for ACC / Tolak
+  // Open Modal for ACC / Tolak Pendaftar
   const handleOpenDecisionModal = (item, type) => {
     setDecisionModal({
       show: true,
@@ -146,7 +209,7 @@ const MitraDashboard = () => {
     });
   };
 
-  // Submit Decision (ACC or Tolak)
+  // Submit Decision (ACC or Tolak Pendaftar)
   const handleSubmitDecision = async (e) => {
     e.preventDefault();
     if (decisionModal.type === 'TOLAK' && !decisionModal.catatan.trim()) {
@@ -186,6 +249,64 @@ const MitraDashboard = () => {
       }
     } catch (err) {
       alert('Terjadi kesalahan jaringan.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Logbook Approval
+  const handleAccLogbook = async (item, action = 'ACC') => {
+    setIsSaving(true);
+    try {
+      const res = await accMitraLogbookApi(token, {
+        id_logbook: item.id_logbook,
+        nim: item.nim,
+        action,
+        catatan_supervisor: action === 'ACC' ? 'Logbook telah diperiksa & disetujui resmi oleh Supervisor Mitra.' : 'Harap perjelas rincian kegiatan harian.'
+      });
+
+      if (res.success) {
+        setAlertInfo({
+          show: true,
+          message: `Logbook Minggu ke-${item.minggu_ke} (${item.nama_mahasiswa}) berhasil ${action === 'ACC' ? 'Disetujui (ACC)' : 'Diminta Revisi'}!`,
+          type: action === 'ACC' ? 'success' : 'warning'
+        });
+        await fetchMitraData();
+      } else {
+        alert(res.message || 'Gagal memverifikasi logbook.');
+      }
+    } catch (err) {
+      alert('Terjadi kesalahan sistem.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Auto-Generate Sertifikat PDF
+  const handleGenerateSertifikat = async (item) => {
+    setIsSaving(true);
+    try {
+      const res = await generateMitraSertifikatApi(token, {
+        id_surat_akhir: item.id_surat_akhir,
+        nim: item.nim,
+        nama_mahasiswa: item.nama_mahasiswa,
+        posisi: item.magang?.posisi || 'Fullstack Software Engineering Intern',
+        nilai_mitra_angka: item.penilaian_mitra?.nilai_angka || 95,
+        nilai_mitra_huruf: item.penilaian_mitra?.nilai_huruf || 'A'
+      });
+
+      if (res.success && res.data) {
+        setAlertInfo({
+          show: true,
+          message: `Sertifikat Magang Industri resmi untuk ${item.nama_mahasiswa} (${item.nim}) berhasil dibuat otomatis! Code: ${res.data.nomor_sertifikat}`,
+          type: 'success'
+        });
+        await fetchMitraData();
+      } else {
+        alert(res.message || 'Gagal membuat sertifikat PDF.');
+      }
+    } catch (err) {
+      alert('Terjadi kesalahan jaringan saat membuat sertifikat.');
     } finally {
       setIsSaving(false);
     }
@@ -249,6 +370,29 @@ const MitraDashboard = () => {
     }
   };
 
+  // Save Company Profile Update
+  const handleSaveCompanyProfile = async (e) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const res = await updateMitraCompanyProfileApi(token, profileForm);
+      if (res.success) {
+        setAlertInfo({
+          show: true,
+          message: 'Profil Perusahaan & Kuota Magang berhasil diperbarui!',
+          type: 'success'
+        });
+        setCompanyProfile(res.data);
+      } else {
+        alert(res.message || 'Gagal mengupdate profil perusahaan.');
+      }
+    } catch (err) {
+      alert('Terjadi kesalahan jaringan.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Search filter for Pendaftar tab
   const filteredPendaftar = pendaftarList.filter(item => {
     const q = searchQuery.toLowerCase();
@@ -257,6 +401,15 @@ const MitraDashboard = () => {
       item.nim?.toLowerCase().includes(q) || 
       item.prodi?.toLowerCase().includes(q) ||
       item.id_magang_fakultas?.toLowerCase().includes(q);
+  });
+
+  // Search filter for Logbook tab
+  const filteredLogbook = logbookList.filter(item => {
+    const q = searchQuery.toLowerCase();
+    return !q || 
+      item.nama_mahasiswa?.toLowerCase().includes(q) || 
+      item.nim?.toLowerCase().includes(q) || 
+      item.ringkasan_kegiatan?.toLowerCase().includes(q);
   });
 
   // Search filter for Penilaian tab
@@ -305,11 +458,27 @@ const MitraDashboard = () => {
             </button>
 
             <button 
+              onClick={() => setActiveTab('logbook')}
+              className={`nav-item ${activeTab === 'logbook' ? 'active' : ''}`}
+            >
+              <BookOpen size={18} />
+              {!isSidebarCollapsed && <span>Logbook Harian</span>}
+            </button>
+
+            <button 
               onClick={() => setActiveTab('penilaian')}
               className={`nav-item ${activeTab === 'penilaian' ? 'active' : ''}`}
             >
               <Star size={18} />
               {!isSidebarCollapsed && <span>Evaluasi & Nilai</span>}
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+            >
+              <Building2 size={18} />
+              {!isSidebarCollapsed && <span>Profil & Kuota</span>}
             </button>
           </div>
         </nav>
@@ -390,8 +559,8 @@ const MitraDashboard = () => {
           <div className="header-actions">
             <div className="profile-badge">
               <div className="profile-info">
-                <span className="profile-name">{mitraInfo?.nama_perusahaan || currentUser?.name || 'PT GoTo Gojek Tokopedia Tbk'}</span>
-                <span className="profile-role">{mitraInfo?.nama_supervisor || 'Supervisor Industri'}</span>
+                <span className="profile-name">{companyProfile?.nama_perusahaan || mitraInfo?.nama_perusahaan || currentUser?.name || 'PT GoTo Gojek Tokopedia Tbk'}</span>
+                <span className="profile-role">{companyProfile?.nama_supervisor || mitraInfo?.nama_supervisor || 'Supervisor Industri'}</span>
               </div>
               <div className="profile-avatar">
                 {currentUser?.name ? currentUser.name.charAt(0) : 'M'}
@@ -432,9 +601,9 @@ const MitraDashboard = () => {
 
           {/* Welcome Section */}
           <section className="welcome-section">
-            <h2 className="welcome-title">Portal Mitra Industri - {mitraInfo?.nama_perusahaan || currentUser?.name || 'PT GoTo Gojek Tokopedia Tbk'}</h2>
+            <h2 className="welcome-title">Portal Mitra Industri - {companyProfile?.nama_perusahaan || mitraInfo?.nama_perusahaan || currentUser?.name || 'PT GoTo Gojek Tokopedia Tbk'}</h2>
             <p className="welcome-desc">
-              Kelola verifikasi penerimaan mahasiswa magang (ACC/Tolak), tinjau <strong>Surat Pengantar Magang FIK</strong>, serta input penilaian kinerja industri.
+              Kelola verifikasi penerimaan mahasiswa magang (ACC/Tolak), verifikasi logbook harian, serta terbitkan sertifikat magang industri.
             </p>
           </section>
 
@@ -452,21 +621,21 @@ const MitraDashboard = () => {
 
             <div className="stat-card">
               <div className="stat-icon">
-                <ShieldCheck size={24} />
+                <BookOpen size={24} />
               </div>
               <div className="stat-info">
-                <span className="stat-value">{pendaftarList.filter(p => p.status_penerimaan_mitra?.includes('Disetujui')).length} Diterima</span>
-                <span className="stat-label">Mahasiswa Magang (ACC)</span>
+                <span className="stat-value">{logbookList.length} Logbook</span>
+                <span className="stat-label">Laporan Kegiatan Harian</span>
               </div>
             </div>
 
             <div className="stat-card">
               <div className="stat-icon">
-                <Clock size={24} />
+                <ShieldCheck size={24} />
               </div>
               <div className="stat-info">
-                <span className="stat-value">{pendaftarList.filter(p => !p.status_penerimaan_mitra || p.status_penerimaan_mitra.includes('Pending')).length} Pending</span>
-                <span className="stat-label">Menunggu Review Penerimaan</span>
+                <span className="stat-value">{companyProfile?.kuota_sisa ?? 7} Kuota</span>
+                <span className="stat-label">Sisa Kuota Magang Perusahaan</span>
               </div>
             </div>
 
@@ -666,7 +835,171 @@ const MitraDashboard = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 2: EVALUASI & PENILAIAN AKHIR MAGANG MITRA */}
+          {/* TAB 2: MONITORING & VERIFIKASI LOGBOOK HARIAN/MINGGUAN MAHASISWA */}
+          {/* ========================================================================= */}
+          {activeTab === 'logbook' && (
+            <div className="info-grid fade-in" style={{ gridTemplateColumns: '1fr' }}>
+              <section className="main-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                  <div>
+                    <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <BookOpen size={20} className="text-primary" />
+                      Logbook Activity & Presensi Harian Mahasiswa ({filteredLogbook.length})
+                    </h3>
+                    <span style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                      Pantau perkembangan tugas harian/mingguan dan berikan persetujuan logbook supervisor.
+                    </span>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div style={{ position: 'relative', minWidth: '260px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <input
+                      type="text"
+                      placeholder="Cari Mahasiswa / Logbook..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        padding: '8px 12px 8px 36px',
+                        borderRadius: '10px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        width: '100%',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                    Memuat logbook harian mahasiswa...
+                  </div>
+                ) : filteredLogbook.length === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '16px' }}>
+                    Belum ada data logbook yang dikirimkan mahasiswa.
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                          <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>MAHASISWA</th>
+                          <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>MINGGU KE / PERIODE</th>
+                          <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>RINGKASAN KEGIATAN</th>
+                          <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center' }}>STATUS VERIFIKASI</th>
+                          <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center' }}>AKSI SUPERVISOR</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredLogbook.map((item) => {
+                          const isVerified = item.status_verifikasi?.includes('Disetujui');
+
+                          return (
+                            <tr key={item.id_logbook} style={{ borderBottom: '1px solid var(--border)' }}>
+                              <td style={{ padding: '16px 8px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>{item.nama_mahasiswa}</span>
+                                  <span style={{ fontSize: '12px', color: '#64748b' }}>NIM: {item.nim}</span>
+                                </div>
+                              </td>
+
+                              <td style={{ padding: '16px 8px', fontSize: '13px' }}>
+                                <span style={{ fontWeight: '800', color: '#B432F2', display: 'block' }}>
+                                  Minggu Ke-{item.minggu_ke}
+                                </span>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                                  {item.tanggal_mulai} s/d {item.tanggal_selesai}
+                                </span>
+                              </td>
+
+                              <td style={{ padding: '16px 8px', fontSize: '13px', maxWidth: '280px' }}>
+                                <p style={{ margin: 0, color: '#334155', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                  {item.ringkasan_kegiatan}
+                                </p>
+                                {item.file_lampiran_url && (
+                                  <a
+                                    href={item.file_lampiran_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ fontSize: '11px', color: '#B432F2', fontWeight: '700', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}
+                                  >
+                                    <FileText size={12} />
+                                    <span>File Lampiran PDF</span>
+                                  </a>
+                                )}
+                              </td>
+
+                              <td style={{ padding: '16px 8px', textAlign: 'center' }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '4px 12px',
+                                  borderRadius: '99px',
+                                  fontSize: '11px',
+                                  fontWeight: '800',
+                                  backgroundColor: isVerified ? '#ecfdf5' : '#fffbeb',
+                                  color: isVerified ? '#059669' : '#d97706',
+                                  border: isVerified ? '1px solid #a7f3d0' : '1px solid #fde68a'
+                                }}>
+                                  {isVerified ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                  {isVerified ? 'Disetujui Supervisor' : 'Pending Review'}
+                                </span>
+                              </td>
+
+                              <td style={{ padding: '16px 8px', textAlign: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAccLogbook(item, 'ACC')}
+                                    style={{
+                                      background: isVerified ? '#059669' : 'linear-gradient(135deg, #B432F2 0%, #7c3aed 100%)',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      padding: '6px 12px',
+                                      borderRadius: '8px',
+                                      fontSize: '12px',
+                                      fontWeight: '700',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {isVerified ? 'Disetujui' : 'ACC Logbook'}
+                                  </button>
+
+                                  {!isVerified && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAccLogbook(item, 'REVISI')}
+                                      style={{
+                                        background: '#ffffff',
+                                        color: '#d97706',
+                                        border: '1px solid #d97706',
+                                        padding: '6px 12px',
+                                        borderRadius: '8px',
+                                        fontSize: '12px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Revisi
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 3: EVALUASI & PENILAIAN AKHIR MAGANG MITRA */}
           {/* ========================================================================= */}
           {activeTab === 'penilaian' && (
             <div className="info-grid fade-in" style={{ gridTemplateColumns: '1fr' }}>
@@ -675,10 +1008,10 @@ const MitraDashboard = () => {
                   <div>
                     <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Star size={20} className="text-primary" />
-                      Daftar Pengajuan Surat Akhir Magang & Evaluasi Kinerja Mahasiswa ({filteredStudents.length})
+                      Daftar Pengajuan Surat Akhir Magang & Penilaian Industri ({filteredStudents.length})
                     </h3>
                     <span style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'block' }}>
-                      Input nilai kinerja industri (0-100), ulasan evaluasi, serta link sertifikat magang.
+                      Input nilai kinerja industri (0-100), ulasan evaluasi, serta auto-generate sertifikat magang PDF.
                     </span>
                   </div>
 
@@ -735,10 +1068,10 @@ const MitraDashboard = () => {
                         <tr style={{ borderBottom: '2px solid var(--border)' }}>
                           <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>MAHASISWA</th>
                           <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>ID MAGANG / PERIODE</th>
-                          <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>SURAT FIK</th>
+                          <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>SURAT TERIMA KASIH FIK</th>
                           <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center' }}>STATUS EVALUASI</th>
                           <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center' }}>NILAI MITRA</th>
-                          <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center' }}>AKSI</th>
+                          <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center' }}>AKSI EVALUASI</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -823,24 +1156,47 @@ const MitraDashboard = () => {
                               </td>
 
                               <td style={{ padding: '16px 8px', textAlign: 'center' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenGradingModal(item)}
-                                  style={{
-                                    background: isEvaluated ? '#ffffff' : 'linear-gradient(135deg, #B432F2 0%, #7c3aed 100%)',
-                                    color: isEvaluated ? '#B432F2' : '#ffffff',
-                                    border: isEvaluated ? '1px solid #B432F2' : 'none',
-                                    padding: '8px 16px',
-                                    borderRadius: '8px',
-                                    fontSize: '12px',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    boxShadow: isEvaluated ? 'none' : '0 4px 12px rgba(180, 50, 242, 0.3)',
-                                    transition: 'all 0.2s ease'
-                                  }}
-                                >
-                                  {isEvaluated ? 'Edit Penilaian' : 'Beri Penilaian Mitra'}
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenGradingModal(item)}
+                                    style={{
+                                      background: isEvaluated ? '#ffffff' : 'linear-gradient(135deg, #B432F2 0%, #7c3aed 100%)',
+                                      color: isEvaluated ? '#B432F2' : '#ffffff',
+                                      border: isEvaluated ? '1px solid #B432F2' : 'none',
+                                      padding: '7px 14px',
+                                      borderRadius: '8px',
+                                      fontSize: '12px',
+                                      fontWeight: '700',
+                                      cursor: 'pointer',
+                                      boxShadow: isEvaluated ? 'none' : '0 4px 12px rgba(180, 50, 242, 0.3)'
+                                    }}
+                                  >
+                                    {isEvaluated ? 'Edit Nilai' : 'Beri Nilai Mitra'}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleGenerateSertifikat(item)}
+                                    title="Auto-Generate Sertifikat Magang PDF"
+                                    style={{
+                                      background: '#065f46',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      padding: '7px 12px',
+                                      borderRadius: '8px',
+                                      fontSize: '12px',
+                                      fontWeight: '700',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}
+                                  >
+                                    <Sparkles size={14} />
+                                    <span>Sertifikat PDF</span>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -849,6 +1205,177 @@ const MitraDashboard = () => {
                     </table>
                   </div>
                 )}
+              </section>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 4: PENGATURAN PROFIL PERUSAHAAN & KELOLA KUOTA MAGANG */}
+          {/* ========================================================================= */}
+          {activeTab === 'profile' && (
+            <div className="info-grid fade-in" style={{ gridTemplateColumns: '1fr' }}>
+              <section className="main-panel">
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Building2 size={20} className="text-primary" />
+                    Profil Mitra Industri & Pengaturan Kuota Magang
+                  </h3>
+                  <span style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                    Perbarui profil instansi perusahaan, kontak supervisor, dan kuota mahasiswa magang MBKM.
+                  </span>
+                </div>
+
+                <form onSubmit={handleSaveCompanyProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Nama Perusahaan / Instansi *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={profileForm.nama_perusahaan}
+                      onChange={(e) => setProfileForm({ ...profileForm, nama_perusahaan: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Kategori Industri *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={profileForm.kategori_industri}
+                      onChange={(e) => setProfileForm({ ...profileForm, kategori_industri: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Nama Supervisor / PIC *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={profileForm.nama_supervisor}
+                      onChange={(e) => setProfileForm({ ...profileForm, nama_supervisor: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Jabatan Supervisor
+                    </label>
+                    <input
+                      type="text"
+                      value={profileForm.jabatan_supervisor}
+                      onChange={(e) => setProfileForm({ ...profileForm, jabatan_supervisor: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Email Supervisor *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={profileForm.email_supervisor}
+                      onChange={(e) => setProfileForm({ ...profileForm, email_supervisor: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Telepon / WhatsApp PIC
+                    </label>
+                    <input
+                      type="text"
+                      value={profileForm.telepon_supervisor}
+                      onChange={(e) => setProfileForm({ ...profileForm, telepon_supervisor: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Alamat Lengkap Perusahaan
+                    </label>
+                    <input
+                      type="text"
+                      value={profileForm.alamat}
+                      onChange={(e) => setProfileForm({ ...profileForm, alamat: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Total Kuota Magang MBKM *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={profileForm.kuota_total}
+                      onChange={(e) => setProfileForm({ ...profileForm, kuota_total: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', fontWeight: '700', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Website Resmi Perusahaan
+                    </label>
+                    <input
+                      type="url"
+                      value={profileForm.website}
+                      onChange={(e) => setProfileForm({ ...profileForm, website: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Deskripsi Program / Lowongan Magang
+                    </label>
+                    <textarea
+                      rows="3"
+                      value={profileForm.deskripsi_lowongan}
+                      onChange={(e) => setProfileForm({ ...profileForm, deskripsi_lowongan: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
+                    />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      style={{
+                        padding: '12px 28px',
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #B432F2 0%, #7c3aed 100%)',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontWeight: '800',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 14px rgba(180, 50, 242, 0.3)'
+                      }}
+                    >
+                      <Save size={18} />
+                      <span>{isSaving ? 'Memperbarui...' : 'Simpan Profil & Kuota Magang'}</span>
+                    </button>
+                  </div>
+                </form>
               </section>
             </div>
           )}

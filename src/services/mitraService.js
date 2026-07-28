@@ -281,3 +281,207 @@ export const tolakPendaftarMitraApi = async (token, payload) => {
     };
   }
 };
+
+/**
+ * 8. Ambil Daftar Logbook Harian/Mingguan Mahasiswa Magang
+ * GET /api/v1/mitra/logbook
+ */
+export const getMitraLogbookListApi = async (token, params = {}) => {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params.nim) searchParams.append('nim', params.nim);
+    if (params.minggu) searchParams.append('minggu', params.minggu);
+    if (params.status) searchParams.append('status', params.status);
+
+    const queryString = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/mitra/logbook${queryString}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'Gagal mengambil data logbook',
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data?.logbook || [],
+    };
+  } catch (error) {
+    console.error('Error pada getMitraLogbookListApi:', error);
+    return {
+      success: false,
+      message: 'Gagal terhubung ke server API.',
+    };
+  }
+};
+
+/**
+ * 9. ACC / Verifikasi Logbook Mahasiswa oleh Supervisor Mitra
+ * POST /api/v1/mitra/logbook/acc
+ */
+export const accMitraLogbookApi = async (token, payload) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mitra/logbook/acc`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        id_logbook: payload.id_logbook,
+        nim: payload.nim,
+        action: payload.action || 'ACC',
+        catatan_supervisor: payload.catatan_supervisor || 'Logbook telah diperiksa & disetujui.',
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'Gagal memverifikasi logbook',
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('Error pada accMitraLogbookApi:', error);
+    return {
+      success: false,
+      message: 'Gagal terhubung ke server API.',
+    };
+  }
+};
+
+/**
+ * 10. Ambil Data Profil Perusahaan & Kuota Magang
+ * GET /api/v1/mitra/profile
+ */
+export const getMitraCompanyProfileApi = async (token) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mitra/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'Gagal mengambil profil perusahaan',
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (error) {
+    console.error('Error pada getMitraCompanyProfileApi:', error);
+    return {
+      success: false,
+      message: 'Gagal terhubung ke server API.',
+    };
+  }
+};
+
+/**
+ * 11. Update Data Profil Perusahaan & Kuota Magang
+ * PUT /api/v1/mitra/profile
+ */
+export const updateMitraCompanyProfileApi = async (token, payload) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mitra/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'Gagal mengupdate profil perusahaan',
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('Error pada updateMitraCompanyProfileApi:', error);
+    return {
+      success: false,
+      message: 'Gagal terhubung ke server API.',
+    };
+  }
+};
+
+/**
+ * 12. Auto-Generate Sertifikat Kelulusan Magang Industri PDF
+ * POST /api/v1/mitra/generate-sertifikat
+ */
+export const generateMitraSertifikatApi = async (token, payload) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mitra/generate-sertifikat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        id_surat_akhir: payload.id_surat_akhir,
+        nim: payload.nim,
+        nama_mahasiswa: payload.nama_mahasiswa,
+        posisi: payload.posisi,
+        nilai_mitra_angka: payload.nilai_mitra_angka,
+        nilai_mitra_huruf: payload.nilai_mitra_huruf,
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'Gagal menggenerate sertifikat',
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('Error pada generateMitraSertifikatApi:', error);
+    return {
+      success: false,
+      message: 'Gagal terhubung ke server API.',
+    };
+  }
+};
