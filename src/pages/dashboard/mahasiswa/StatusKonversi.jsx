@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getKonversiCatalogApi, getAiRecommendationApi, submitKonversiMatkulApi } from '../../../services/konversiMatkulService';
+import { suggestCpmkApi } from '../../../services/aiService';
 import {
   GraduationCap, AlertCircle, Plus, Trash2, Save,
   CheckCircle2, BookOpen, Clock, FileText, ClipboardList,
@@ -114,6 +115,42 @@ const StatusKonversi = ({
   const [courseCatalog, setCourseCatalog] = useState(PREDEFINED_COURSES);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [analyzingRowId, setAnalyzingRowId] = useState(null);
+  const [aiSuggestions, setAiSuggestions] = useState({});
+
+  const handleRowAiSuggest = async (rowId, objectiveText) => {
+    if (!objectiveText || objectiveText.trim().length < 3) {
+      if (triggerAlert) triggerAlert('AI Auto-Suggest', 'Harap isi deskripsi aktivitas/objective terlebih dahulu minimal 3 karakter.', 'warning');
+      return;
+    }
+    setAnalyzingRowId(rowId);
+    try {
+      const res = await suggestCpmkApi(objectiveText);
+      if (res.success && res.data?.best_match) {
+        const best = res.data.best_match;
+        handleUpdateRow(rowId, 'selectedCourseId', best.code);
+        setAiSuggestions(prev => ({
+          ...prev,
+          [rowId]: {
+            score: best.confidence_score,
+            code: best.code,
+            name: best.name,
+            cpmk: best.cpmk,
+            reasoning: best.reasoning
+          }
+        }));
+        if (triggerAlert) {
+          triggerAlert('AI Match (' + best.confidence_score + '% Match)', 'Rekomendasi AI: [' + best.code + '] ' + best.name + '. Otomatis dipetakan di tabel!', 'success');
+        }
+      } else {
+        if (triggerAlert) triggerAlert('AI Auto-Suggest', res.message || 'Gagal menganalisis teks.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAnalyzingRowId(null);
+    }
+  };
 
   const token = currentUser?.token || localStorage.getItem('edushift_token');
 
@@ -344,13 +381,43 @@ const StatusKonversi = ({
                         {currentCourse ? `${currentCourse.sks} SKS` : '-'}
                       </td>
                       <td>
-                        <textarea
-                          className="sk-textarea"
-                          value={row.objective}
-                          onChange={(e) => handleUpdateRow(row.id, 'objective', e.target.value)}
-                          placeholder="Deskripsikan relevansi objective pekerjaan magang..."
-                          rows={2}
-                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <textarea
+                            className="sk-textarea"
+                            value={row.objective}
+                            onChange={(e) => handleUpdateRow(row.id, 'objective', e.target.value)}
+                            placeholder="Deskripsikan relevansi objective pekerjaan magang (e.g. Mengembangkan REST API Express.js)..."
+                            rows={2}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleRowAiSuggest(row.id, row.objective)}
+                              disabled={analyzingRowId === row.id}
+                              style={{
+                                background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                boxShadow: '0 2px 6px rgba(147, 51, 234, 0.25)'
+                              }}
+                            >
+                              <Sparkles size={12} /> {analyzingRowId === row.id ? 'Menganalisis AI...' : 'Auto-Suggest CPMK (AI)'}
+                            </button>
+                            {aiSuggestions[row.id] && (
+                              <span style={{ fontSize: '10px', backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>
+                                ✨ {aiSuggestions[row.id].score}% Match: {aiSuggestions[row.id].code}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td>
                         <input
