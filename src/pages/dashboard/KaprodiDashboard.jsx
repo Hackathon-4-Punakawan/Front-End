@@ -852,11 +852,11 @@ const KaprodiDashboard = () => {
             
             <div className="profile-badge">
               <div className="profile-info">
-                <span className="profile-name">{currentUser?.name || 'Prof. Kusrini, M.Kom.'}</span>
+                <span className="profile-name">{currentUser?.name || 'Eli Pujastuti, M.Kom.'}</span>
                 <span className="profile-role">{currentUser?.identity || '0419077902'}</span>
               </div>
               <div className="profile-avatar">
-                {currentUser?.name ? currentUser.name.charAt(0) : 'K'}
+                {currentUser?.name ? currentUser.name.charAt(0) : 'E'}
               </div>
             </div>
           </div>
