@@ -1130,17 +1130,17 @@ const KaprodiDashboard = () => {
           ];
 
           const rawList = dosenListApi.length > 0 ? dosenListApi : defaultDosenList;
-          const list = rawList.map((d, idx) => {
-            const fb = defaultDosenList[idx % defaultDosenList.length] || {};
+          const list = rawList.map((d) => {
+            const knownDosen = defaultDosenList.find(item => item.nidn === d.nidn);
             return {
               ...d,
-              nama: d.nama || fb.nama || 'Dosen Pembimbing DPL',
-              email: d.email || fb.email || `${d.nidn}@amikom.ac.id`,
-              bidang_keahlian: d.bidang_keahlian || fb.bidang_keahlian || 'Software Engineering',
-              kuota_max: d.kuota_max || fb.kuota_max || 5,
-              selesai_evaluasi: d.selesai_evaluasi !== undefined ? d.selesai_evaluasi : fb.selesai_evaluasi,
-              menunggu_review: d.menunggu_review !== undefined ? d.menunggu_review : fb.menunggu_review,
-              total_mahasiswa_bimbingan: d.total_mahasiswa_bimbingan || fb.total_mahasiswa_bimbingan || 2,
+              nama: d.nama || knownDosen?.nama || 'Dosen Pembimbing DPL',
+              email: d.email || knownDosen?.email || `${d.nidn}@amikom.ac.id`,
+              bidang_keahlian: d.bidang_keahlian || knownDosen?.bidang_keahlian || 'Software Engineering',
+              kuota_max: d.kuota_max !== undefined ? d.kuota_max : (knownDosen?.kuota_max || 5),
+              selesai_evaluasi: d.selesai_evaluasi !== undefined ? d.selesai_evaluasi : (knownDosen?.selesai_evaluasi || 0),
+              menunggu_review: d.menunggu_review !== undefined ? d.menunggu_review : (knownDosen?.menunggu_review || 0),
+              total_mahasiswa_bimbingan: d.total_mahasiswa_bimbingan !== undefined ? d.total_mahasiswa_bimbingan : (knownDosen?.total_mahasiswa_bimbingan || 0),
               is_active: d.is_active !== false
             };
           });
