@@ -27,17 +27,17 @@ const Login = () => {
   const handleAutoFill = () => {
     setError('');
     if (role === 'mahasiswa') {
-      setIdentityInput('21.11.4001');
-      setPassword('Budi#1234');
+      setIdentityInput('24.11.6666');
+      setPassword('12345678');
     } else if (role === 'dosen') {
-      setIdentityInput('0512038901');
-      setPassword('Dosen#1234');
+      setIdentityInput('indah.susanti@amikom.ac.id');
+      setPassword('Admin123!');
     } else if (role === 'mitra') {
       setIdentityInput('rian.hidayat@goto.com');
-      setPassword('Mtr#1234');
+      setPassword('Admin123!');
     } else if (role === 'kaprodi') {
-      setIdentityInput('kaprodi.if@amikom.ac.id');
-      setPassword('Admin#1234');
+      setIdentityInput('admin.fik@amikom.ac.id');
+      setPassword('Admin123!');
     }
   };
 
