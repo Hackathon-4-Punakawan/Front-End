@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getProposalMagangHelperInfoApi, submitProposalMagangApi } from '../../../services/proposalMagangService';
+import { uploadPdfFileApi } from '../../../services/uploadService';
 import {
   ArrowLeft, Send, FileText, User, Mail, Hash, Phone,
   Building2, MapPin, Clock, Briefcase, BookOpen, ClipboardList,
@@ -214,8 +215,32 @@ const ProposalMagangForm = ({ currentUser, idMagangData, idMagangValue, onCancel
     }
 
     setIsSubmitting(true);
+    let cvUrl = form.fileCv;
+    let krsUrl = form.fileKRS;
+    let transkripUrl = form.fileTranskrip;
+
+    try {
+      if (form.fileCv && typeof form.fileCv !== 'string') {
+        const up = await uploadPdfFileApi(form.fileCv);
+        if (up.success) cvUrl = up.data.url;
+      }
+      if (form.fileKRS && typeof form.fileKRS !== 'string') {
+        const up = await uploadPdfFileApi(form.fileKRS);
+        if (up.success) krsUrl = up.data.url;
+      }
+      if (form.fileTranskrip && typeof form.fileTranskrip !== 'string') {
+        const up = await uploadPdfFileApi(form.fileTranskrip);
+        if (up.success) transkripUrl = up.data.url;
+      }
+    } catch (err) {
+      console.error('Error uploading PDF:', err);
+    }
+
     const res = await submitProposalMagangApi(token, {
       ...form,
+      fileCvUrl: cvUrl,
+      fileKrsUrl: krsUrl,
+      fileTranskripUrl: transkripUrl,
       idPengajuan: idMagangData?.id_pengajuan || null,
     });
     setIsSubmitting(false);

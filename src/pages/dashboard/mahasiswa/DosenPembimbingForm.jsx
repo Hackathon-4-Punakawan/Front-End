@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getPengajuanDplHelperInfoApi, submitPengajuanDplApi } from '../../../services/pengajuanDplService';
+import { uploadPdfFileApi } from '../../../services/uploadService';
 import {
   ArrowLeft, Send, FileText, User, Mail, Hash, BookOpen,
   Clock, CheckCircle2, AlertCircle, UploadCloud, X
@@ -112,12 +113,21 @@ const DosenPembimbingForm = ({ currentUser, idMagangValue, onCancel, onSubmit, t
     }
 
     setIsSubmitting(true);
-    const buktiUrl = form.buktiDiterima?.name 
-      ? `https://drive.google.com/file/d/bukti_${form.buktiDiterima.name}` 
-      : 'https://drive.google.com/file/d/bukti_diterima_magang.pdf';
-    const khsUrl = form.khs?.name 
-      ? `https://drive.google.com/file/d/khs_${form.khs.name}` 
-      : 'https://drive.google.com/file/d/dokumen_khs.pdf';
+    let buktiUrl = 'https://drive.google.com/file/d/bukti_diterima_magang.pdf';
+    let khsUrl = 'https://drive.google.com/file/d/dokumen_khs.pdf';
+
+    try {
+      if (form.buktiDiterima && typeof form.buktiDiterima !== 'string') {
+        const up = await uploadPdfFileApi(form.buktiDiterima);
+        if (up.success) buktiUrl = up.data.url;
+      }
+      if (form.khs && typeof form.khs !== 'string') {
+        const up = await uploadPdfFileApi(form.khs);
+        if (up.success) khsUrl = up.data.url;
+      }
+    } catch (err) {
+      console.error('Error uploading PDF in DPL form:', err);
+    }
 
     const payload = {
       sks_ditempuh: Number(form.sksDitempuh),

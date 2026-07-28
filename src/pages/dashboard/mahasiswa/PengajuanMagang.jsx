@@ -1005,9 +1005,23 @@ const PengajuanMagang = ({
                         </div>
                         <div className="detail-item" style={{ gridColumn: 'span 2' }}>
                           <span className="detail-label">Dokumen Terlampir</span>
-                          <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                            <span className="detail-file-chip">Bukti_Diterima_Magang.pdf</span>
-                            <span className="detail-file-chip">KHS_Terakhir.pdf</span>
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => window.open(selectedDetail.data.buktiDiterimaUrl || 'https://drive.google.com/file/d/bukti_diterima_magang.pdf', '_blank')}
+                              className="detail-file-chip"
+                              style={{ border: '1px solid #d8b4fe', background: '#faf5ff', color: '#7e22ce', cursor: 'pointer', padding: '6px 12px', borderRadius: '6px', fontWeight: '700', fontSize: '11px' }}
+                            >
+                              📄 Bukti_Diterima_Magang.pdf
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => window.open(selectedDetail.data.khsUrl || 'https://drive.google.com/file/d/dokumen_khs.pdf', '_blank')}
+                              className="detail-file-chip"
+                              style={{ border: '1px solid #d8b4fe', background: '#faf5ff', color: '#7e22ce', cursor: 'pointer', padding: '6px 12px', borderRadius: '6px', fontWeight: '700', fontSize: '11px' }}
+                            >
+                              📄 KHS_Terakhir.pdf
+                            </button>
                           </div>
                         </div>
                       </div>
