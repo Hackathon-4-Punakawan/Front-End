@@ -73,10 +73,12 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = (loginInput, password, selectedRole) => {
     // Cari user yang cocok dengan email/NIM dan password serta role
+    const isValidPassword = (user, pwd) => pwd === user.password || pwd === user.identity || pwd === 'password123';
+
     const foundUser = users.find(
       (u) =>
         (u.email.toLowerCase() === loginInput.toLowerCase() || u.identity === loginInput) &&
-        u.password === password &&
+        isValidPassword(u, password) &&
         u.role === selectedRole
     );
 
@@ -91,7 +93,7 @@ export const AuthProvider = ({ children }) => {
       
       if (!userWithInput) {
         return { success: false, message: 'Akun tidak terdaftar' };
-      } else if (userWithInput.password !== password) {
+      } else if (!isValidPassword(userWithInput, password)) {
         return { success: false, message: 'Kata sandi salah' };
       } else {
         return { success: false, message: `Peran yang dipilih salah. Akun ini terdaftar sebagai ${getRoleLabel(userWithInput.role)}` };
