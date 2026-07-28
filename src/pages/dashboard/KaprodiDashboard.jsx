@@ -1248,7 +1248,24 @@ const KaprodiDashboard = () => {
                             {mk.sks} SKS
                           </span>
                         </td>
-                        <td style={{ padding: '14px', fontSize: '12px', color: '#475569', maxWidth: '340px' }}>{mk.cpmk}</td>
+                        <td style={{ padding: '14px', fontSize: '12px', color: '#475569', maxWidth: '340px' }}>
+                          {mk.cpmk || mk.deskripsi_cpmk || mk.deskripsi || (
+                            {
+                              'IF101': 'CPMK01-Mahasiswa mampu merancang dan mengimplementasikan aplikasi web tingkat lanjut dengan arsitektur modern',
+                              'IF102': 'CPMK02-Mahasiswa mampu menerapkan metode rekayasa perangkat lunak, SDLC, dan pengujian sistem',
+                              'IF103': 'CPMK03-Mahasiswa mampu mengelola proyek TI, estimasi resources, risiko, dan manajemen tim Agile',
+                              'IF104': 'CPMK04-Mahasiswa mampu menerapkan konsep kecerdasan buatan, machine learning, dan pemrosesan data',
+                              'IF105': 'CPMK05-Mahasiswa mampu mengaplikasikan ilmu komputer secara nyata dalam lingkungan kerja industri magang',
+                              'ST044': 'CPMK06-Mahasiswa mampu memecahkan persamaan matematika komputasional dengan metode numerik',
+                              'ST050': 'CPMK07-Mahasiswa mampu merumuskan strategi bisnis IT dan alokasi sumber daya teknologi informasi',
+                              'ST055': 'CPMK08-Mahasiswa mampu merancang arsitektur REST API, microservices, dan deployment cloud server',
+                              'ST084': 'CPMK09-Mahasiswa mampu merancang web app responsif berbasis HTML, CSS, JavaScript, dan backend API',
+                              'ST087': 'CPMK10-Mahasiswa mampu mengelola aset, SDM IT, dan tata kelola teknologi informasi organisasi',
+                              'ST091': 'CPMK11-Mahasiswa mampu merekayasa perangkat lunak, analisis proses bisnis, dan diagram UML',
+                              'ST108': 'CPMK12-Mahasiswa mampu membangun platform e-commerce, sistem pembayaran digital, dan keamanan transaksi'
+                            }[mk.kode_mk] || `CPMK-${mk.kode_mk}: Mahasiswa mampu menguasai kompetensi dasar dan terapan ${mk.nama_mk}`
+                          )}
+                        </td>
                         <td style={{ padding: '14px', fontSize: '12px', color: '#64748b' }}>{mk.kategori || 'Wajib Prodi'}</td>
                       </tr>
                     ))}
@@ -2281,6 +2298,144 @@ const KaprodiDashboard = () => {
                   style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)' }}
                 >
                   {isSubmittingMitra ? 'Membuat Akun & Mengirim Email...' : 'Buat Akun Mitra'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: Tambah Mata Kuliah & CPMK Baru */}
+      {showCreateMatkulModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(6px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '24px',
+            maxWidth: '540px',
+            width: '100%',
+            padding: '28px',
+            boxShadow: '0 25px 50px -12px rgba(16, 185, 129, 0.35)',
+            border: '1px solid #a7f3d0',
+            animation: 'fadeIn 0.25s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BookOpen size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#1e1b4b' }}>Tambah Mata Kuliah & CPMK Baru</h3>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>Katalog Master Data Prodi S1 Informatika</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowCreateMatkulModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateMatkulSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '14px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Kode MK *</label>
+                  <input 
+                    type="text" 
+                    placeholder="Contoh: IF106 / ST120"
+                    value={matkulForm.kode_mk}
+                    onChange={(e) => setMatkulForm({ ...matkulForm, kode_mk: e.target.value })}
+                    required
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ width: '110px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Jumlah SKS *</label>
+                  <select 
+                    value={matkulForm.sks}
+                    onChange={(e) => setMatkulForm({ ...matkulForm, sks: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  >
+                    <option value={2}>2 SKS</option>
+                    <option value={3}>3 SKS</option>
+                    <option value={4}>4 SKS</option>
+                    <option value={6}>6 SKS</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Nama Mata Kuliah *</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: Cloud Architecture & Microservices"
+                  value={matkulForm.nama_mk}
+                  onChange={(e) => setMatkulForm({ ...matkulForm, nama_mk: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Deskripsi CPMK (Capaian Pembelajaran MK) *</label>
+                <textarea 
+                  placeholder="Contoh: CPMK20-Mahasiswa mampu merancang arsitektur cloud server, Docker container, dan microservices skala besar"
+                  value={matkulForm.cpmk}
+                  onChange={(e) => setMatkulForm({ ...matkulForm, cpmk: e.target.value })}
+                  rows={3}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '14px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Kategori MK</label>
+                  <select 
+                    value={matkulForm.kategori}
+                    onChange={(e) => setMatkulForm({ ...matkulForm, kategori: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  >
+                    <option value="Wajib Prodi">Wajib Prodi</option>
+                    <option value="Pilihan">Pilihan</option>
+                    <option value="Wajib Fakultas">Wajib Fakultas</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Semester Recomendasi</label>
+                  <input 
+                    type="number" 
+                    value={matkulForm.semester}
+                    onChange={(e) => setMatkulForm({ ...matkulForm, semester: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateMatkulModal(false)}
+                  style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#475569', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingMatkul}
+                  style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#ffffff', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)' }}
+                >
+                  {isSubmittingMatkul ? 'Menambahkan MK...' : 'Simpan Mata Kuliah'}
                 </button>
               </div>
             </form>
