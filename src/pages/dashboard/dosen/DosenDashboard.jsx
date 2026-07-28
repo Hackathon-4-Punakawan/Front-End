@@ -172,7 +172,7 @@ const DosenDashboard = () => {
         catatan_dosen: 'Capaian CPMK dan modul magang disetujui DPL',
       });
       if (res.success) {
-        triggerAlert('ACC Semua Berhasil ⚡', 'Seluruh usulan mata kuliah konversi SKS untuk mahasiswa ini telah disetujui.', 'success');
+        triggerAlert('ACC Semua Berhasil', 'Seluruh usulan mata kuliah konversi SKS untuk mahasiswa ini telah disetujui.', 'success');
         fetchMahasiswaDetail(nim);
         fetchMahasiswaList();
         fetchStats();
@@ -183,6 +183,41 @@ const DosenDashboard = () => {
       triggerAlert('Error', 'Gagal terhubung ke server.', 'error');
     } finally {
       setIsAccingAll(false);
+    }
+  };
+
+  // ── Revisi Semua Handler ───────────────────────────────────────────────────
+  const [revisiAllModal, setRevisiAllModal] = useState({ show: false, nim: '' });
+  const [revisiAllCatatan, setRevisiAllCatatan] = useState('');
+  const [isRevisingAll, setIsRevisingAll] = useState(false);
+
+  const handleRevisiAllSubmit = async (e) => {
+    e.preventDefault();
+    if (!revisiAllCatatan.trim()) {
+      triggerAlert('Validasi Gagal', 'Catatan revisi wajib diisi ketika meminta revisi semua.', 'warning');
+      return;
+    }
+    setIsRevisingAll(true);
+    try {
+      const res = await dosenReviewKonversiApi(token, {
+        nim: revisiAllModal.nim,
+        action: 'REVISI',
+        catatan_dosen: revisiAllCatatan.trim(),
+      });
+      if (res.success) {
+        triggerAlert('Revisi Semua Berhasil ⚠️', 'Seluruh usulan mata kuliah konversi SKS untuk mahasiswa ini telah diminta revisi.', 'success');
+        setRevisiAllModal({ show: false, nim: '' });
+        setRevisiAllCatatan('');
+        fetchMahasiswaDetail(revisiAllModal.nim);
+        fetchMahasiswaList();
+        fetchStats();
+      } else {
+        triggerAlert('Gagal Revisi Semua', res.message || 'Terjadi kesalahan.', 'error');
+      }
+    } catch (err) {
+      triggerAlert('Error', 'Gagal terhubung ke server.', 'error');
+    } finally {
+      setIsRevisingAll(false);
     }
   };
 
@@ -826,7 +861,7 @@ const DosenDashboard = () => {
                       disabled={isAccingAll}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        padding: '6px 16px', borderRadius: '9px', border: 'none',
+                        padding: '6px 14px', borderRadius: '9px', border: 'none',
                         background: isAccingAll ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)',
                         color: '#fff', fontSize: '12px', fontWeight: '800', cursor: isAccingAll ? 'not-allowed' : 'pointer',
                         boxShadow: '0 2px 10px rgba(16,185,129,0.35)',
@@ -834,10 +869,24 @@ const DosenDashboard = () => {
                       }}
                     >
                       {isAccingAll ? (
-                        <><RefreshCcw size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> Memproses ACC...</>
+                        <><RefreshCcw size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> ACC...</>
                       ) : (
-                        <><CheckCircle2 size={14} /> ⚡ ACC Semua (1-Klik)</>
+                        <><CheckCircle2 size={14} /> ACC Semua</>
                       )}
+                    </button>
+
+                    <button
+                      onClick={() => setRevisiAllModal({ show: true, nim: selectedMahasiswa.mahasiswa?.nim })}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        padding: '6px 14px', borderRadius: '9px', border: 'none',
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                        color: '#fff', fontSize: '12px', fontWeight: '800', cursor: 'pointer',
+                        boxShadow: '0 2px 10px rgba(245,158,11,0.35)',
+                        transition: 'transform 0.1s'
+                      }}
+                    >
+                      <AlertTriangle size={14} /> Revisi Semua
                     </button>
                   </div>
                 </div>
@@ -1091,6 +1140,90 @@ const DosenDashboard = () => {
                   {isSubmittingReview
                     ? <><RefreshCcw size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> Menyimpan...</>
                     : <><Send size={14} /> {reviewAction === 'ACC' ? 'ACC Konversi' : 'Kirim Revisi'}</>
+                  }
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══ MODAL: REVISI SEMUA ═══════════════════════════════════════════════ */}
+      {revisiAllModal.show && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 650, padding: '20px'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '22px', width: '100%', maxWidth: '480px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)', animation: 'fadeIn 0.2s ease'
+          }}>
+            <div style={{
+              padding: '22px 26px', borderBottom: '1px solid #f1f5f9',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={18} color="#f59e0b" />
+                Minta Revisi Semua Konversi SKS
+              </h3>
+              <button
+                onClick={() => setRevisiAllModal({ show: false, nim: '' })}
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRevisiAllSubmit} style={{ padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '12px 14px', fontSize: '12px', color: '#b45309' }}>
+                ⚠️ Seluruh mata kuliah usulan konversi SKS milik NIM <strong>{revisiAllModal.nim}</strong> akan diubah statusnya menjadi <strong>Revisi DPL</strong>.
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>
+                  Catatan / Alasan Revisi <span style={{ color: '#ef4444' }}>* (Wajib)</span>
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Contoh: Harap perjelas deskripsi objective dan kesesuaian CPMK untuk seluruh mata kuliah yang diusulkan..."
+                  value={revisiAllCatatan}
+                  onChange={(e) => setRevisiAllCatatan(e.target.value)}
+                  required
+                  style={{
+                    width: '100%', padding: '10px 14px', borderRadius: '10px',
+                    border: '1.5px solid #e9e2f2', fontSize: '13px',
+                    fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setRevisiAllModal({ show: false, nim: '' })}
+                  style={{
+                    padding: '10px 20px', borderRadius: '10px',
+                    background: '#f1f5f9', border: 'none', color: '#64748b',
+                    fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRevisingAll}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '10px 24px', borderRadius: '10px', border: 'none',
+                    background: isRevisingAll ? '#fde68a' : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    color: '#fff', fontWeight: '700', fontSize: '13px',
+                    cursor: isRevisingAll ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 14px rgba(245,158,11,0.25)'
+                  }}
+                >
+                  {isRevisingAll
+                    ? <><RefreshCcw size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> Memproses...</>
+                    : <><Send size={14} /> Kirim Revisi Semua</>
                   }
                 </button>
               </div>
