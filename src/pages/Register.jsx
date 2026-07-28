@@ -3,10 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import Input from '../components/Input';
-import { User, Lock, Mail, CreditCard, ArrowRight, AlertCircle, CheckCircle, KeyRound } from 'lucide-react';
+import { User, Lock, Mail, CreditCard, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
 
 const Register = () => {
-  const { register, currentUser, getRoleLabel } = useAuth();
+  const { register, currentUser } = useAuth();
   const navigate = useNavigate();
 
   const [role, setRole] = useState('mahasiswa');
@@ -26,7 +26,7 @@ const Register = () => {
     }
   }, [currentUser, navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !identity || !email || !password) {
       setError('Harap isi semua kolom input.');
@@ -37,26 +37,29 @@ const Register = () => {
     setSuccess('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      const result = register(name, identity, email, password, role);
+    try {
+      const result = await register(name, identity, email, password, role);
       setIsLoading(false);
 
       if (result.success) {
         setSuccess('Pendaftaran berhasil! Mengarahkan Anda ke Dashboard...');
         setTimeout(() => {
-          navigate(`/dashboard/${result.user.role}`);
-        }, 1500);
+          navigate(`/dashboard/${result.user?.role || 'mahasiswa'}`);
+        }, 1200);
       } else {
-        setError(result.message);
+        setError(result.message || 'Registrasi gagal.');
       }
-    }, 800);
+    } catch (err) {
+      setIsLoading(false);
+      setError('Terjadi kesalahan pada server saat pendaftaran.');
+    }
   };
 
   return (
     <div className="auth-container fade-in">
       <Card>
-        <h1 className="auth-title">Daftar Akun Baru</h1>
-        <p className="auth-subtitle">Buat akun untuk mulai menggunakan sistem Konversi Amikom.</p>
+        <h1 className="auth-title">Daftar Akun Baru (Mahasiswa)</h1>
+        <p className="auth-subtitle">Buat akun mahasiswa mandiri untuk mulai pengajuan MBKM Konversi Amikom.</p>
 
         {error && (
           <div style={{
@@ -101,7 +104,7 @@ const Register = () => {
           <Input
             id="name"
             label="NAMA LENGKAP"
-            placeholder="Contoh: Budi Santoso"
+            placeholder="Contoh: Rizky Ramadhan"
             type="text"
             icon={User}
             value={name}
@@ -114,7 +117,7 @@ const Register = () => {
           <Input
             id="identity"
             label="NIM (NOMOR INDUK MAHASISWA)"
-            placeholder="Contoh: 22.11.4321"
+            placeholder="Contoh: 21.11.4005"
             type="text"
             icon={CreditCard}
             value={identity}
@@ -126,8 +129,8 @@ const Register = () => {
           {/* Email */}
           <Input
             id="email"
-            label="ALAMAT EMAIL"
-            placeholder="Contoh: budi@students.amikom.ac.id"
+            label="ALAMAT EMAIL STUDENT"
+            placeholder="Contoh: rizky.ramadhan@students.amikom.ac.id"
             type="email"
             icon={Mail}
             value={email}
@@ -153,7 +156,7 @@ const Register = () => {
           <button type="submit" className="btn-primary" style={{ marginTop: '20px' }} disabled={isLoading}>
             {isLoading ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <span className="spinner"></span> Mendaftarkan...
+                <span className="spinner"></span> Mendaftarkan ke API...
               </span>
             ) : (
               <>

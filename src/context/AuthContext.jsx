@@ -1,67 +1,38 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  loginApi,
+  getProfileApi,
+  registerMahasiswaApi,
+  mapBackendRoleToFrontend,
+} from '../services/authService';
 
 const AuthContext = createContext(null);
 
-const DEFAULT_USERS = [
-  {
-    name: 'Budi Santoso',
-    identity: '22.11.4321', // NIM
-    email: 'budi.mahasiswa@amikom.ac.id',
-    password: 'password123',
-    role: 'mahasiswa',
-  },
-  {
-    name: 'Dr. Ahmad Dahlan, M.T.',
-    identity: '0412088501', // NIDN
-    email: 'ahmad.dosen@amikom.ac.id',
-    password: 'password123',
-    role: 'dosen',
-  },
-  {
-    name: 'Google Indonesia (Mitra)',
-    identity: 'MITRA-GOOG', // Kode Mitra
-    email: 'hr@google.co.id',
-    password: 'password123',
-    role: 'mitra',
-  },
-  {
-    name: 'Prof. Kusrini, M.Kom.',
-    identity: '0419077902', // NIDN Kaprodi
-    email: 'kusrini.kaprodi@amikom.ac.id',
-    password: 'password123',
-    role: 'kaprodi',
-  }
-];
-
 export const AuthProvider = ({ children }) => {
-  const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem('edushift_users');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return DEFAULT_USERS;
-  });
-
+  const [token, setToken] = useState(() => localStorage.getItem('edushift_token') || null);
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('edushift_current_user');
     if (saved) {
       try {
         return JSON.parse(saved);
       } catch (e) {
-        console.error(e);
+        console.error('Failed to parse saved user:', e);
       }
     }
     return null;
   });
+  const [isInitializing, setIsInitializing] = useState(true);
 
+  // Sync token state to localStorage
   useEffect(() => {
-    localStorage.setItem('edushift_users', JSON.stringify(users));
-  }, [users]);
+    if (token) {
+      localStorage.setItem('edushift_token', token);
+    } else {
+      localStorage.removeItem('edushift_token');
+    }
+  }, [token]);
 
+  // Sync currentUser state to localStorage
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('edushift_current_user', JSON.stringify(currentUser));
@@ -70,69 +41,121 @@ export const AuthProvider = ({ children }) => {
     }
   }, [currentUser]);
 
-  // Login function
-  const login = (loginInput, password, selectedRole) => {
-    // Cari user yang cocok dengan email/NIM dan password serta role
-    const foundUser = users.find(
-      (u) =>
-        (u.email.toLowerCase() === loginInput.toLowerCase() || u.identity === loginInput) &&
-        u.password === password &&
-        u.role === selectedRole
-    );
-
-    if (foundUser) {
-      setCurrentUser(foundUser);
-      return { success: true, user: foundUser };
-    } else {
-      // Periksa apakah username/password salah, atau rol yang tidak cocok
-      const userWithInput = users.find(
-        (u) => u.email.toLowerCase() === loginInput.toLowerCase() || u.identity === loginInput
-      );
-      
-      if (!userWithInput) {
-        return { success: false, message: 'Akun tidak terdaftar' };
-      } else if (userWithInput.password !== password) {
-        return { success: false, message: 'Kata sandi salah' };
-      } else {
-        return { success: false, message: `Peran yang dipilih salah. Akun ini terdaftar sebagai ${getRoleLabel(userWithInput.role)}` };
+  // Fetch /auth/me profile when app loads if token exists
+  useEffect(() => {
+    const initAuth = async () => {
+      const savedToken = localStorage.getItem('edushift_token');
+      if (savedToken) {
+        const res = await getProfileApi(savedToken);
+        if (res.success && res.data) {
+          const uData = res.data;
+          const mappedRole = mapBackendRoleToFrontend(uData.role);
+          const formattedUser = {
+            id: uData.id,
+            name: uData.profile?.nama || uData.email,
+            identity: uData.profile?.nidn || uData.profile?.nim || uData.email,
+            email: uData.email,
+            role: mappedRole,
+            rawRole: uData.role,
+            profile: uData.profile,
+            token: savedToken,
+          };
+          setCurrentUser(formattedUser);
+        } else {
+          // Clear invalid token
+          setToken(null);
+          setCurrentUser(null);
+        }
       }
+      setIsInitializing(false);
+    };
+
+    initAuth();
+  }, []);
+
+  // Login Function via Real API
+  const login = async (loginInput, password, selectedRole) => {
+    const result = await loginApi(loginInput, password);
+
+    if (!result.success || !result.user) {
+      return { success: false, message: result.message || 'Gagal mengambil data akun.' };
     }
+
+    const { token: apiToken, user: uData } = result;
+    const mappedRole = mapBackendRoleToFrontend(uData?.role);
+
+    const formattedUser = {
+      id: uData?.id,
+      name: uData?.profile?.nama || uData?.email || 'User',
+      identity: uData?.profile?.nidn || uData?.profile?.nim || uData?.email,
+      email: uData?.email,
+      role: mappedRole,
+      rawRole: uData?.role,
+      profile: uData?.profile,
+      token: apiToken,
+    };
+
+    setToken(apiToken);
+    setCurrentUser(formattedUser);
+
+    return {
+      success: true,
+      user: formattedUser,
+      message: result.message || 'Login berhasil',
+    };
   };
 
-  // Register function
-  const register = (name, identity, email, password, role) => {
-    // Periksa apakah NIM/Email sudah terdaftar
-    const isExists = users.some(
-      (u) => u.email.toLowerCase() === email.toLowerCase() || u.identity === identity
-    );
+  // Register Function via Real API (Mahasiswa Mandiri)
+  const register = async (name, identity, email, password, role) => {
+    const result = await registerMahasiswaApi({
+      nim: identity,
+      nama: name,
+      email,
+      password,
+    });
 
-    if (isExists) {
-      return { success: false, message: 'Email atau NIM/NIDN/ID sudah terdaftar' };
+    if (!result.success) {
+      return { success: false, message: result.message };
     }
 
-    const newUser = { name, identity, email, password, role };
-    setUsers((prev) => [...prev, newUser]);
-    setCurrentUser(newUser); // Auto login setelah register
-    return { success: true, user: newUser };
+    // Auto-login after registration
+    const loginResult = await login(identity || email, password, role || 'mahasiswa');
+    if (loginResult.success) {
+      return { success: true, user: loginResult.user };
+    }
+
+    return {
+      success: true,
+      user: {
+        name,
+        identity,
+        email,
+        role: 'mahasiswa',
+      },
+      message: 'Registrasi berhasil. Silakan login.',
+    };
   };
 
-  // Logout function
+  // Logout Function
   const logout = () => {
+    setToken(null);
     setCurrentUser(null);
+    localStorage.removeItem('edushift_token');
+    localStorage.removeItem('edushift_current_user');
   };
 
   const getRoleLabel = (r) => {
     switch (r) {
       case 'mahasiswa': return 'Mahasiswa';
-      case 'dosen': return 'Dosen';
+      case 'dosen': return 'Dosen Pembimbing (DPL)';
       case 'mitra': return 'Mitra Industri';
-      case 'kaprodi': return 'Kaprodi';
+      case 'kaprodi': return 'Admin / Kaprodi';
       default: return r;
     }
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, register, logout, getRoleLabel }}>
+    <AuthContext.Provider value={{ currentUser, token, login, register, logout, getRoleLabel, isInitializing }}>
       {children}
     </AuthContext.Provider>
   );

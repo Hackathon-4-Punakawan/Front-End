@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getPengajuanDplHelperInfoApi, submitPengajuanDplApi } from '../../../services/pengajuanDplService';
 import {
   ArrowLeft, Send, FileText, User, Mail, Hash, BookOpen,
   Clock, CheckCircle2, AlertCircle, UploadCloud, X
@@ -68,6 +69,26 @@ const DosenPembimbingForm = ({ currentUser, idMagangValue, onCancel, onSubmit, t
     khs: null,
   });
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const token = currentUser?.token || localStorage.getItem('edushift_token');
+
+  useEffect(() => {
+    if (!token) return;
+    const loadHelper = async () => {
+      const res = await getPengajuanDplHelperInfoApi(token);
+      if (res.success && res.data) {
+        setForm(p => ({
+          ...p,
+          email: res.data.email || p.email,
+          idMagang: res.data.id_magang || p.idMagang,
+          namaMahasiswa: res.data.nama_mahasiswa || p.namaMahasiswa,
+          nimMahasiswa: res.data.nim_mahasiswa || p.nimMahasiswa,
+        }));
+      }
+    };
+    loadHelper();
+  }, [token]);
 
   const set = (k, v) => {
     setForm(p => ({ ...p, [k]: v }));
@@ -83,12 +104,38 @@ const DosenPembimbingForm = ({ currentUser, idMagangValue, onCancel, onSubmit, t
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      onSubmit(form);
-    } else {
+    if (!validate()) {
       triggerAlert('Formulir Belum Lengkap', 'Harap lengkapi semua kolom dan unggah berkas yang wajib.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const buktiUrl = form.buktiDiterima?.name 
+      ? `https://drive.google.com/file/d/bukti_${form.buktiDiterima.name}` 
+      : 'https://drive.google.com/file/d/bukti_diterima_magang.pdf';
+    const khsUrl = form.khs?.name 
+      ? `https://drive.google.com/file/d/khs_${form.khs.name}` 
+      : 'https://drive.google.com/file/d/dokumen_khs.pdf';
+
+    const payload = {
+      sks_ditempuh: Number(form.sksDitempuh),
+      bukti_diterima_magang: buktiUrl,
+      file_khs: khsUrl,
+    };
+
+    const res = await submitPengajuanDplApi(token, payload);
+    setIsSubmitting(false);
+
+    if (res.success) {
+      onSubmit({
+        ...form,
+        namaDPL: res.data?.nama_dpl || 'Drs. Kusrini, M.Kom.',
+        skDplUrl: res.data?.sk_dpl_url,
+      });
+    } else {
+      triggerAlert('Gagal Mengirimkan Pengajuan', res.message || 'Gagal mengajukan DPL.', 'error');
     }
   };
 

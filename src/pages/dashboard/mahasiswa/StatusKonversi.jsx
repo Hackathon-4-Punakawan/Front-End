@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { getKonversiCatalogApi, getAiRecommendationApi, submitKonversiMatkulApi } from '../../../services/konversiMatkulService';
 import {
   GraduationCap, AlertCircle, Plus, Trash2, Save,
   CheckCircle2, BookOpen, Clock, FileText, ClipboardList,
   ArrowLeft, Search, ShieldCheck, Mail, Calendar, Briefcase,
-  Send
+  Send, Sparkles
 } from 'lucide-react';
 
 const PREDEFINED_COURSES = [
@@ -110,7 +111,58 @@ const StatusKonversi = ({
     }
   };
 
-  const handleSave = () => {
+  const [courseCatalog, setCourseCatalog] = useState(PREDEFINED_COURSES);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const token = currentUser?.token || localStorage.getItem('edushift_token');
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchCatalog = async () => {
+      const res = await getKonversiCatalogApi(token);
+      if (res.success && res.data && res.data.length > 0) {
+        const mapped = res.data.map(c => ({
+          id: c.kode_mk,
+          code: c.kode_mk,
+          name: c.nama_mk,
+          sks: c.sks,
+          cpmk: Array.isArray(c.cpmk) ? c.cpmk.join('; ') : (c.default_objective || ''),
+        }));
+        setCourseCatalog(mapped);
+      }
+    };
+    fetchCatalog();
+  }, [token]);
+
+  const handleFetchAiRecommendation = async () => {
+    if (!token) return;
+    setIsLoadingAi(true);
+    const res = await getAiRecommendationApi(token);
+    setIsLoadingAi(false);
+
+    if (res.success && res.data) {
+      const recs = res.data.recommended_courses || res.data.items || [];
+      if (recs.length > 0) {
+        const mappedRows = recs.map((item, idx) => ({
+          id: idx + 1,
+          selectedCourseId: item.kode_mk || item.selectedCourseId,
+          objective: item.objective || item.default_objective || 'Disesuaikan dengan kompetensi industri.',
+          durasi: '6 Bulan',
+          nilaiAngka: '',
+          selected: false,
+        }));
+        setRows(mappedRows);
+        if (triggerAlert) {
+          triggerAlert('Rekomendasi AI Diterapkan', `Berhasil memuat ${mappedRows.length} rekomendasi mata kuliah konversi dari AI!`, 'success');
+        }
+      }
+    } else if (triggerAlert) {
+      triggerAlert('AI Konversi', res.message || 'Gagal memuat rekomendasi AI.', 'error');
+    }
+  };
+
+  const handleSave = async () => {
     const isAnyEmpty = rows.some(r => !r.selectedCourseId || !r.objective || !r.durasi);
     if (isAnyEmpty) {
       if (triggerAlert) {
@@ -121,11 +173,30 @@ const StatusKonversi = ({
       return;
     }
 
-    setIsSavedSuccessfully(true);
-    if (onSubmit) {
-      onSubmit(rows);
+    setIsSubmitting(true);
+    const items = rows.map(r => {
+      const course = courseCatalog.find(c => c.id === r.selectedCourseId) || PREDEFINED_COURSES.find(c => c.id === r.selectedCourseId);
+      return {
+        kode_mk: course?.code || r.selectedCourseId,
+        nama_mk: course?.name || r.selectedCourseId,
+        sks: course?.sks || 3,
+        objective: r.objective,
+        durasi: r.durasi,
+      };
+    });
+
+    const res = await submitKonversiMatkulApi(token, { items });
+    setIsSubmitting(false);
+
+    if (res.success) {
+      setIsSavedSuccessfully(true);
+      if (onSubmit) {
+        onSubmit(rows);
+      } else if (triggerAlert) {
+        triggerAlert('Konversi Disimpan', 'Matriks Konversi SKS Akademik berhasil diajukan dan sedang diverifikasi oleh DPL!', 'success');
+      }
     } else if (triggerAlert) {
-      triggerAlert('Konversi Disimpan', 'Daftar konversi SKS Anda berhasil disimpan ke dalam sistem draf akademik.', 'success');
+      triggerAlert('Gagal Mengirim Konversi', res.message || 'Gagal mengajukan tabel konversi SKS.', 'error');
     }
   };
 

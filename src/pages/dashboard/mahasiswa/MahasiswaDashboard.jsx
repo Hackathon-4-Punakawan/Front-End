@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import amikomLogo from '../../../assets/amikom.png';
 import PengajuanMagang from './PengajuanMagang';
+import { getMyPengajuanFikStatusApi, getAllStepsApi, getMahasiswaDashboardApi } from '../../../services/pengajuanFikService';
+import { getMyProposalStatusApi } from '../../../services/proposalMagangService';
+import { getMySuratPengantarStatusApi } from '../../../services/suratPengantarService';
+import { getMyPengajuanDplStatusApi } from '../../../services/pengajuanDplService';
+import { getMyKonversiStatusApi } from '../../../services/konversiMatkulService';
 import {
   LogOut,
   LayoutDashboard,
@@ -70,6 +75,244 @@ const MahasiswaDashboard = () => {
 
   // State for Surat Akhir submitted in Magang tab
   const [suratAkhirSubmitted, setSuratAkhirSubmitted] = useState(false);
+
+  // Full Mahasiswa Dashboard Backend API state
+  const [dashboardData, setDashboardData] = useState(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  const token = currentUser?.token || localStorage.getItem('edushift_token');
+
+  // Sync Step 1 & Step 2 status on mount & page refresh
+  useEffect(() => {
+    if (!token) {
+      setIsInitialLoading(false);
+      return;
+    }
+    let isMounted = true;
+
+    const syncBackendStatus = async () => {
+      try {
+        // 0. Fetch Full Mahasiswa Dashboard Data API
+        const resDash = await getMahasiswaDashboardApi(token);
+        if (isMounted && resDash.success && resDash.data) {
+          const d = resDash.data;
+          setDashboardData(d);
+
+          if (d.hero_card || (d.tabel_konversi_mk && d.tabel_konversi_mk.length > 0)) {
+            setConversionState(prev => ({
+              ...prev,
+              status: prev.status !== 'none' ? prev.status : 'DISETUJUI',
+              tanggalPengajuan: prev.tanggalPengajuan || '27 Juli 2026',
+              courses: prev.courses && prev.courses.length > 0 ? prev.courses : (d.tabel_konversi_mk || []).map(c => ({
+                selectedCourseId: c.kode_mk,
+                objective: c.objective,
+                nilaiAngka: c.nilai_angka,
+              }))
+            }));
+
+            setIdMagangStatus('approved');
+            if (d.hero_card?.nama_instansi) {
+              setProposals(prev => prev.length > 0 ? prev : [{
+                id: 1,
+                jenisPengajuan: 'Pengajuan Proposal Magang',
+                namaInstansi: d.hero_card.nama_instansi,
+                programDiikuti: d.hero_card.jenis_program || 'Magang Mandiri',
+                status: 'DISETUJUI',
+              }]);
+            }
+            if (d.dosen_pembimbing?.nama_dpl) {
+              setDosenPembimbing(prev => prev || {
+                status: 'DISETUJUI',
+                namaDPL: d.dosen_pembimbing.nama_dpl,
+                skDplUrl: d.dosen_pembimbing.sk_dpl_url,
+              });
+            }
+          }
+        }
+
+        // 0b. Unified All Steps Aggregator
+        const resAllSteps = await getAllStepsApi(token);
+        if (isMounted && resAllSteps.success && resAllSteps.data && resAllSteps.data.riwayat_pengajuan) {
+          const riwayat = resAllSteps.data.riwayat_pengajuan;
+
+          // Step 1 check
+          const s1 = riwayat.find(r => r.step === 1);
+          if (s1) {
+            const officialId = s1.id_magang_fakultas || s1.nomor_layanan_fik;
+            const statusStr = (s1.status || '').toUpperCase();
+
+            let sem = s1.semester;
+            let thn = s1.tahun_akademik;
+            if (!sem && s1.sub_info && s1.sub_info.includes('Semester')) {
+              const parts = s1.sub_info.split(' - ');
+              sem = parts[0]?.replace('Semester', '').trim();
+              thn = parts[1]?.trim();
+            }
+
+            setIdMagangData({
+              id_pengajuan: s1.id_pengajuan || 1,
+              jenisPengajuan: s1.jenis_pengajuan || 'Pengajuan ID Magang',
+              namaInstansi: s1.nama_instansi || '-',
+              alamatInstansi: s1.alamat_instansi || '-',
+              semester: sem || '6',
+              tahunAkademik: thn || '2026/2027',
+              tanggalPengajuan: s1.tanggal_pengajuan || '-',
+              idMagangFakultas: officialId,
+              statusSuratFakultas: s1.status,
+              suratPengantarUrl: s1.surat_pengantar_url,
+            });
+            if (statusStr.includes('SETUJU') || statusStr.includes('DISETUJUI') || (officialId && !officialId.includes('PENDING'))) {
+              setIdMagangValue(officialId);
+              setIdMagangStatus('approved');
+            } else {
+              setIdMagangStatus('pending');
+            }
+          }
+
+          // Step 2 check
+          const s2 = riwayat.find(r => r.step === 2);
+          if (s2) {
+            const statusStr = (s2.status || '').toUpperCase();
+            const normStatus = (statusStr.includes('SETUJU') || statusStr.includes('DISETUJUI')) ? 'DISETUJUI' : 'PENDING';
+            setProposals([{
+              id: s2.id,
+              jenisPengajuan: s2.jenis_pengajuan || 'Pengajuan Proposal Magang',
+              namaInstansi: s2.nama_instansi || '-',
+              tanggalPengajuan: s2.tanggal_pengajuan || '-',
+              status: normStatus,
+              rawStatus: s2.status,
+            }]);
+          }
+
+          // Step 3 check (Surat Pengantar)
+          const s3 = riwayat.find(r => r.step === 3);
+          if (s3) {
+            const statusStr = (s3.status || '').toUpperCase();
+            const normStatus = (statusStr.includes('SETUJU') || statusStr.includes('DISETUJUI')) ? 'DISETUJUI' : 'PENDING';
+            setSuratPengantar({
+              id: s3.id,
+              jenisPengajuan: s3.jenis_pengajuan || 'Pengajuan Surat Pengantar Magang FIK',
+              tanggalPengajuan: s3.tanggal_pengajuan || '-',
+              status: normStatus,
+              suratPengantarUrl: s3.surat_pengantar_url,
+            });
+          }
+
+          // Step 4 check (Dosen Pembimbing)
+          const s4 = riwayat.find(r => r.step === 4);
+          if (s4) {
+            const statusStr = (s4.status || '').toUpperCase();
+            const normStatus = (statusStr.includes('SETUJU') || statusStr.includes('DISETUJUI')) ? 'DISETUJUI' : 'PENDING';
+            setDosenPembimbing({
+              id: s4.id,
+              jenisPengajuan: s4.jenis_pengajuan || 'Pengajuan Dosen Pembimbing',
+              tanggalPengajuan: s4.tanggal_pengajuan || '-',
+              status: normStatus,
+              namaDPL: s4.nama_instansi || 'Drs. Kusrini, M.Kom.',
+              skDplUrl: s4.sk_dpl_url,
+            });
+          }
+
+          // Step 5 check (Konversi SKS)
+          const s5 = riwayat.find(r => r.step === 5);
+          if (s5) {
+            const statusStr = (s5.status || '').toUpperCase();
+            const normStatus = (statusStr.includes('SETUJU') || statusStr.includes('DISETUJUI')) ? 'DISETUJUI' : 'PENDING';
+            setConversionState({
+              status: normStatus,
+              tanggalPengajuan: s5.tanggal_pengajuan || '-',
+              courses: s5.items || [],
+            });
+          }
+        }
+
+        // 1. Sync Step 1 FIK fallback
+        const resFik = await getMyPengajuanFikStatusApi(token);
+        if (isMounted && resFik.success && resFik.data && resFik.data.length > 0) {
+          const latest = resFik.data[0];
+          const officialId = latest.id_magang_fakultas || latest.nomor_layanan_fik;
+          const statusStr = (latest.status_surat_fakultas || latest.status_pengajuan || '').toUpperCase();
+
+          const formattedDate = latest.created_at
+            ? new Date(latest.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+            : new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+          setIdMagangData({
+            id_pengajuan: latest.id_pengajuan,
+            jenisPengajuan: latest.jenis_pengajuan || 'Pengajuan ID Magang',
+            kepadaYth: latest.tujuan_surat || '-',
+            namaInstansi: latest.nama_instansi || '-',
+            alamatInstansi: latest.alamat_instansi || '-',
+            semester: latest.semester || '6',
+            tahunAkademik: latest.tahun_akademik || '2026/2027',
+            tanggalPengajuan: formattedDate,
+            idMagangFakultas: officialId,
+            statusSuratFakultas: latest.status_surat_fakultas,
+            suratPengantarUrl: latest.surat_pengantar_url,
+          });
+
+          if (statusStr.includes('DISETUJUI') || (officialId && !officialId.includes('PENDING'))) {
+            setIdMagangValue(officialId);
+            setIdMagangStatus('approved');
+          } else {
+            setIdMagangStatus('pending');
+          }
+        }
+
+        // 2. Sync Step 2 Proposal fallback
+        const resProposal = await getMyProposalStatusApi(token);
+        if (isMounted && resProposal.success && resProposal.data) {
+          const mapped = resProposal.data.map((p, idx) => {
+            const statusStr = (p.status_review || 'Review Proposal Prodi').toUpperCase();
+            let normStatus = 'PENDING';
+            if (statusStr.includes('ACC') || statusStr.includes('SETUJU') || statusStr.includes('DISETUJUI')) {
+              normStatus = 'DISETUJUI';
+            } else if (statusStr.includes('REVISI') || statusStr.includes('TOLAK')) {
+              normStatus = 'REVISI';
+            }
+
+            const formattedDate = p.created_at
+              ? new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+              : new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            return {
+              id: p.id_proposal || idx + 1,
+              jenisPengajuan: 'Pengajuan Proposal Magang',
+              namaProgramKegiatan: p.nama_program_kegiatan || '-',
+              programDiikuti: p.program_diikuti || 'Magang Berdampak',
+              namaInstansi: p.nama_instansi || '-',
+              namaPIC: p.nama_pic || '-',
+              tanggalMulai: p.tanggal_mulai || '-',
+              tanggalSelesai: p.tanggal_selesai || '-',
+              tanggalPengajuan: formattedDate,
+              status: normStatus,
+              rawStatus: p.status_review,
+              catatanRevisi: p.catatan_revisi,
+            };
+          });
+          setProposals(mapped);
+        }
+      } catch (err) {
+        console.error("Error pada syncBackendStatus:", err);
+      } finally {
+        if (isMounted) {
+          setIsInitialLoading(false);
+        }
+      }
+    };
+
+    let interval = null;
+    syncBackendStatus().then(() => {
+      if (isMounted && idMagangStatus === 'pending') {
+        interval = setInterval(syncBackendStatus, 5000);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      if (interval) clearInterval(interval);
+    };
+  }, [token]);
 
   // Custom Alert Modal State
   const [customAlert, setCustomAlert] = useState({
@@ -353,7 +596,33 @@ const MahasiswaDashboard = () => {
                 <h1 className="main-title">Dashboard Mahasiswa</h1>
               </div>
 
-              {conversionState.status === 'none' ? (
+              {isInitialLoading ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '80px 20px',
+                  background: '#ffffff',
+                  borderRadius: '20px',
+                  border: '1px solid #f1f5f9',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                  marginTop: '12px'
+                }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    border: '3.5px solid #e2e8f0',
+                    borderTopColor: '#B432F2',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite'
+                  }} />
+                  <span style={{ marginTop: '14px', color: '#64748b', fontSize: '13px', fontWeight: '600' }}>
+                    Memuat data dashboard...
+                  </span>
+                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                </div>
+              ) : conversionState.status === 'none' && !dashboardData?.hero_card ? (
                 // Dashboard is locked until internship submission wizard is completed (i.e. SKS conversion submitted)
                 <div className="dashboard-locked-container">
                   <div className="locked-card">
@@ -412,49 +681,51 @@ const MahasiswaDashboard = () => {
                     <div className="program-summary-card">
                       <div className="card-header-badge">
                         <span className="running-badge">
-                          {conversionState.status === 'DISETUJUI' ? 'Selesai Validasi' : 'Sedang Berjalan'}
+                          {dashboardData?.hero_card?.status_badge || (conversionState.status === 'DISETUJUI' ? 'Selesai Validasi' : 'Sedang Berjalan')}
                         </span>
                       </div>
                       <h2 className="program-title">
-                        {proposals[0]?.programDiikuti || 'Program Magang MBKM'}
+                        {dashboardData?.hero_card?.jenis_program || proposals[0]?.programDiikuti || 'Magang Mandiri'}
                       </h2>
                       <div className="program-partner">
                         <FolderOpen size={16} />
-                        <span>{proposals[0]?.namaInstansi || '-'}</span>
+                        <span>{dashboardData?.hero_card?.nama_instansi || proposals[0]?.namaInstansi || '-'}</span>
                       </div>
 
                       <div className="progress-container">
                         <div className="progress-labels">
                           <span className="progress-target">
-                            Target Konversi <strong>{approvedSks}</strong> / {totalSks} SKS
+                            {dashboardData?.hero_card?.target_konversi?.label || `Target Konversi ${approvedSks} / ${totalSks} SKS`}
                           </span>
-                          <span className="progress-percent">{progressPercent}% Tercapai</span>
+                          <span className="progress-percent">
+                            {dashboardData?.hero_card?.target_konversi?.tercapai_label || `${progressPercent}% Tercapai`}
+                          </span>
                         </div>
                         <div className="progress-bar-track">
-                          <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }}></div>
+                          <div className="progress-bar-fill" style={{ width: `${dashboardData?.hero_card?.target_konversi?.persentase ?? progressPercent}%` }}></div>
                         </div>
                       </div>
 
                       {/* Indicator Boxes */}
                       <div className="indicator-grid">
                         <div className="indicator-box color-purple">
-                          <span className="ind-val">{conversionState.courses.length}</span>
+                          <span className="ind-val">{dashboardData?.hero_card?.metrics?.mk_diajukan ?? (conversionState.courses.length || 5)}</span>
                           <span className="ind-lbl">MK Diajukan</span>
                         </div>
                         <div className="indicator-box color-blue">
                           <span className="ind-val">
-                            {conversionState.status === 'DISETUJUI' ? conversionState.courses.length : 0}
+                            {dashboardData?.hero_card?.metrics?.disetujui_kaprodi ?? (conversionState.status === 'DISETUJUI' ? conversionState.courses.length : 0)}
                           </span>
                           <span className="ind-lbl">Disetujui Kaprodi</span>
                         </div>
                         <div className="indicator-box color-blue">
                           <span className="ind-val">
-                            {conversionState.status === 'PENDING' ? conversionState.courses.length : 0}
+                            {dashboardData?.hero_card?.metrics?.proses_dosen ?? (conversionState.status === 'PENDING' ? conversionState.courses.length : 0)}
                           </span>
                           <span className="ind-lbl">Proses Dosen</span>
                         </div>
                         <div className="indicator-box color-gray">
-                          <span className="ind-val">{suratPengantar?.periodeMagang || '6 Bulan'}</span>
+                          <span className="ind-val">{dashboardData?.hero_card?.metrics?.durasi_magang || suratPengantar?.periodeMagang || '6 Bulan'}</span>
                           <span className="ind-lbl">Durasi Magang</span>
                         </div>
                       </div>
@@ -467,7 +738,7 @@ const MahasiswaDashboard = () => {
                           <User size={18} />
                           <span>Dosen Pembimbing</span>
                         </div>
-                        {dosenPembimbing && dosenPembimbing.status === 'DISETUJUI' ? (
+                        {(dashboardData?.dosen_pembimbing) || (dosenPembimbing && dosenPembimbing.status === 'DISETUJUI') ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '14px', width: '100%' }}>
                             {/* Gradient Avatar */}
                             <div style={{
@@ -484,16 +755,16 @@ const MahasiswaDashboard = () => {
                               fontWeight: '800',
                               fontFamily: "'Outfit', sans-serif"
                             }}>
-                              SW
+                              {dashboardData?.dosen_pembimbing?.inisial || 'SW'}
                             </div>
 
                             {/* Name & Badge */}
                             <div>
                               <h4 style={{ margin: '0 0 6px 0', fontSize: '14.5px', fontWeight: '800', color: '#0f172a', fontFamily: "'Outfit', sans-serif", lineHeight: '1.3' }}>
-                                Prof. Dr. Suwarto, M.Kom.
+                                {dashboardData?.dosen_pembimbing?.nama_dpl || dosenPembimbing?.namaDPL || 'Prof. Dr. Suwarto, M.Kom.'}
                               </h4>
                               <span style={{ fontSize: '9px', fontWeight: '800', color: '#B432F2', background: '#f8ebff', padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'inline-block' }}>
-                                Dosen Informatika
+                                {dashboardData?.dosen_pembimbing?.role_tag || dashboardData?.dosen_pembimbing?.role || 'DOSEN INFORMATIKA'}
                               </span>
                             </div>
 
@@ -501,11 +772,11 @@ const MahasiswaDashboard = () => {
                             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #f6f1fb', paddingTop: '12px', marginTop: '2px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', justifyContent: 'center' }}>
                                 <Mail size={13} style={{ color: '#B432F2', flexShrink: 0 }} />
-                                <span style={{ fontWeight: '600' }}>suwarto.dosen@amikom.ac.id</span>
+                                <span style={{ fontWeight: '600' }}>{dashboardData?.dosen_pembimbing?.email || 'suwarto.dosen@amikom.ac.id'}</span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', justifyContent: 'center' }}>
                                 <Phone size={13} style={{ color: '#B432F2', flexShrink: 0 }} />
-                                <span style={{ fontWeight: '600' }}>+62 812-3456-7890</span>
+                                <span style={{ fontWeight: '600' }}>{dashboardData?.dosen_pembimbing?.telepon || dashboardData?.dosen_pembimbing?.phone || '+62 812-3456-7890'}</span>
                               </div>
                             </div>
                           </div>
@@ -595,22 +866,34 @@ const MahasiswaDashboard = () => {
                       <p className="panel-subtitle-text">Pantau tahapan validasi untuk setiap mata kuliah.</p>
 
                       <div className="timeline-items">
-                        {conversionState.courses.map((row, idx) => {
-                          const course = PREDEFINED_COURSES.find(c => c.id === row.selectedCourseId);
-                          if (!course) return null;
-                          const isCourseApproved = conversionState.status === 'DISETUJUI';
-                          const statusLabel = isCourseApproved ? 'Selesai' : 'Menunggu Kaprodi';
+                        {((dashboardData && dashboardData.tabel_konversi_mk && dashboardData.tabel_konversi_mk.length > 0)
+                          ? dashboardData.tabel_konversi_mk.map((c) => ({
+                              name: c.nama_mk,
+                              sks: c.sks,
+                              statusItem: c.status_item || 'Disetujui DPL',
+                            }))
+                          : conversionState.courses.map((row) => {
+                              const course = PREDEFINED_COURSES.find(c => c.id === row.selectedCourseId);
+                              return {
+                                name: course?.name || row.selectedCourseId,
+                                sks: course?.sks || 3,
+                                statusItem: conversionState.status === 'DISETUJUI' ? 'Disetujui Kaprodi' : 'Menunggu Validasi',
+                              };
+                            })
+                        ).map((item, idx) => {
+                          const isCourseApproved = item.statusItem.includes('Disetujui') || item.statusItem.includes('Kaprodi') || conversionState.status === 'DISETUJUI';
+                          const statusLabel = isCourseApproved ? 'Selesai' : 'Menunggu Validasi';
                           const statusColor = isCourseApproved ? 'color-purple' : 'color-gray';
 
                           return (
                             <div className="timeline-row" key={idx}>
                               <div className="row-info">
-                                <span className="subject-name">{course.name} ({course.sks} SKS)</span>
+                                <span className="subject-name">{item.name} ({item.sks} SKS)</span>
                                 <span className={`subject-status ${statusColor}`}>{statusLabel}</span>
                               </div>
                               <div className="timeline-track-bar">
                                 <div className="bar-segment active"></div>
-                                <div className={`bar-segment ${conversionState.status !== 'none' ? 'active' : ''}`}></div>
+                                <div className={`bar-segment ${conversionState.status !== 'none' || dashboardData ? 'active' : ''}`}></div>
                                 <div className={`bar-segment ${isCourseApproved ? 'active-purple' : ''}`}></div>
                               </div>
                               <div className="timeline-labels">
@@ -657,25 +940,47 @@ const MahasiswaDashboard = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {conversionState.courses.map((row, idx) => {
-                            const course = PREDEFINED_COURSES.find(c => c.id === row.selectedCourseId);
-                            if (!course) return null;
-                            const isCourseApproved = conversionState.status === 'DISETUJUI';
+                          {((dashboardData && dashboardData.tabel_konversi_mk && dashboardData.tabel_konversi_mk.length > 0)
+                            ? dashboardData.tabel_konversi_mk.map((item, idx) => ({
+                                idx,
+                                code: item.kode_mk,
+                                name: item.nama_mk,
+                                sks: item.sks,
+                                objective: item.objective,
+                                nilaiAngka: item.nilai_angka,
+                                nilaiHuruf: item.nilai_huruf || calculateGrade(item.nilai_angka),
+                                statusItem: item.status_item || 'Disetujui DPL',
+                              }))
+                            : conversionState.courses.map((row, idx) => {
+                                const course = PREDEFINED_COURSES.find(c => c.id === row.selectedCourseId);
+                                return {
+                                  idx,
+                                  code: course?.code || row.selectedCourseId,
+                                  name: course?.name || row.selectedCourseId,
+                                  sks: course?.sks || 3,
+                                  objective: row.objective || '-',
+                                  nilaiAngka: row.nilaiAngka,
+                                  nilaiHuruf: calculateGrade(row.nilaiAngka),
+                                  statusItem: conversionState.status === 'DISETUJUI' ? 'Disetujui Kaprodi' : 'Menunggu Validasi',
+                                };
+                              })
+                          ).map((item, idx) => {
+                            const isCourseApproved = item.statusItem.includes('Disetujui') || item.statusItem.includes('Kaprodi') || conversionState.status === 'DISETUJUI';
                             
                             return (
                               <tr key={idx}>
                                 <td>
-                                  <div className="cell-primary">{course.name}</div>
-                                  <span className="cell-secondary">{course.code}</span>
+                                  <div className="cell-primary">{item.name}</div>
+                                  <span className="cell-secondary">{item.code}</span>
                                 </td>
-                                <td style={{ textAlign: 'center', fontWeight: '600' }}>{course.sks}</td>
-                                <td className="cell-primary">{row.objective || '-'}</td>
+                                <td style={{ textAlign: 'center', fontWeight: '600' }}>{item.sks}</td>
+                                <td className="cell-primary">{item.objective || '-'}</td>
                                 <td style={{ textAlign: 'center' }}>
                                   <input 
                                     type="number" 
                                     min="0" 
                                     max="100" 
-                                    value={row.nilaiAngka || ''} 
+                                    value={item.nilaiAngka ?? ''} 
                                     onChange={(e) => handleDashboardGradeChange(idx, e.target.value)} 
                                     placeholder="0-100"
                                     style={{ 
@@ -693,13 +998,13 @@ const MahasiswaDashboard = () => {
                                   />
                                 </td>
                                 <td style={{ textAlign: 'center' }}>
-                                  <span className={`sk-grade-badge grade-${calculateGrade(row.nilaiAngka).replace(/\+/g, '\\+')}`}>
-                                    {calculateGrade(row.nilaiAngka)}
+                                  <span className={`sk-grade-badge grade-${(item.nilaiHuruf || '-').replace(/\+/g, '\\+')}`}>
+                                    {item.nilaiHuruf || '-'}
                                   </span>
                                 </td>
                                 <td>
                                   <span className={`status-capsule ${isCourseApproved ? 'badge-purple' : 'badge-gray'}`}>
-                                    {isCourseApproved ? 'Disetujui Kaprodi' : 'Menunggu Validasi'}
+                                    {item.statusItem}
                                   </span>
                                 </td>
                               </tr>
