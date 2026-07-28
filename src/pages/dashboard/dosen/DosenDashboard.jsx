@@ -223,9 +223,26 @@ const DosenDashboard = () => {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  // ── Stats shorthand ───────────────────────────────────────────────────────
+  // Fetch on mount
+  useEffect(() => {
+    fetchStats();
+    fetchMahasiswaList();
+  }, [fetchStats, fetchMahasiswaList]);
+
+  // ── Stats calculation (Count per Mahasiswa) ───────────────────────────────
   const stats = dashboardStats;
-  const ringkasan = stats?.ringkasan_konversi || {};
+  const totalMhs = mahasiswaList.length || stats?.total_mahasiswa_ampu || 0;
+  const countDisetujuiMhs = mahasiswaList.length > 0
+    ? mahasiswaList.filter(m => (m.konversi_sks?.status_konversi || '').toLowerCase().includes('disetujui') || (m.konversi_sks?.status_konversi || '').toLowerCase().includes('acc')).length
+    : (stats?.ringkasan_konversi?.total_disetujui ?? 0);
+
+  const countRevisiMhs = mahasiswaList.length > 0
+    ? mahasiswaList.filter(m => (m.konversi_sks?.status_konversi || '').toLowerCase().includes('revisi')).length
+    : (stats?.ringkasan_konversi?.total_revisi ?? 0);
+
+  const countPerluReviewMhs = mahasiswaList.length > 0
+    ? Math.max(0, totalMhs - countDisetujuiMhs - countRevisiMhs)
+    : (stats?.ringkasan_konversi?.total_perlu_review ?? 0);
 
   // ════════════════════════════════════════════════════════════════════════════
   return (
@@ -384,10 +401,10 @@ const DosenDashboard = () => {
                   {/* Stats Cards */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
                     {[
-                      { label: 'Total Mahasiswa', val: stats?.total_mahasiswa_ampu ?? 0, color: '#B432F2', bg: '#f8ebff', icon: <Users size={22} /> },
-                      { label: 'Perlu Review', val: ringkasan.total_perlu_review ?? 0, color: '#6366f1', bg: '#eef2ff', icon: <Hourglass size={22} /> },
-                      { label: 'Disetujui', val: ringkasan.total_disetujui ?? 0, color: '#10b981', bg: '#ecfdf5', icon: <CheckCircle size={22} /> },
-                      { label: 'Perlu Revisi', val: ringkasan.total_revisi ?? 0, color: '#f59e0b', bg: '#fffbeb', icon: <AlertTriangle size={22} /> },
+                      { label: 'Total Mahasiswa', val: totalMhs, color: '#B432F2', bg: '#f8ebff', icon: <Users size={22} /> },
+                      { label: 'Perlu Review', val: countPerluReviewMhs, color: '#6366f1', bg: '#eef2ff', icon: <Hourglass size={22} /> },
+                      { label: 'Disetujui', val: countDisetujuiMhs, color: '#10b981', bg: '#ecfdf5', icon: <CheckCircle size={22} /> },
+                      { label: 'Perlu Revisi', val: countRevisiMhs, color: '#f59e0b', bg: '#fffbeb', icon: <AlertTriangle size={22} /> },
                     ].map((s, i) => (
                       <div key={i} style={{
                         background: '#fff', borderRadius: '18px', padding: '20px 22px',
