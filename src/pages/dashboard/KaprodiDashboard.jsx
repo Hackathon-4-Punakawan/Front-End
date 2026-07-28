@@ -1947,7 +1947,6 @@ const KaprodiDashboard = () => {
                         <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>DOSEN PEMBIMBING (DPL)</th>
                         <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>USULAN SKS</th>
                         <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>STATUS REVIEW</th>
-                        <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>AKSI MONITORING</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1979,20 +1978,6 @@ const KaprodiDashboard = () => {
                             }}>
                               {mhs.konversi_sks?.status_review_dpl || 'Menunggu Review DPL'}
                             </span>
-                          </td>
-                          <td style={{ padding: '14px', textAlign: 'center' }}>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedLogbookMhs(mhs)}
-                              style={{
-                                background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
-                                color: '#ffffff', border: 'none', padding: '6px 12px', borderRadius: '8px',
-                                fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex',
-                                alignItems: 'center', gap: '5px', boxShadow: '0 2px 8px rgba(168, 85, 247, 0.3)'
-                              }}
-                            >
-                              <ClipboardList size={13} /> Logbook
-                            </button>
                           </td>
                         </tr>
                       ))}
@@ -3162,116 +3147,6 @@ const KaprodiDashboard = () => {
         </div>
       )}
 
-      {/* ══ MODAL READ-ONLY: LOGBOOK MONITORING KAPRODI ═══════════════════════ */}
-      {selectedLogbookMhs && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 500, padding: '20px'
-        }} onClick={(e) => { if (e.target === e.currentTarget) setSelectedLogbookMhs(null); }}>
-          <div style={{
-            background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '840px',
-            maxHeight: '90vh', overflowY: 'auto',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.18)', animation: 'fadeIn 0.25s ease'
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              padding: '22px 28px', borderBottom: '1px solid #f1f5f9',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: 'linear-gradient(135deg, #f3e8ff 0%, #fff 100%)',
-              borderRadius: '24px 24px 0 0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '46px', height: '46px', borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #9333ea, #7e22ce)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '20px', fontWeight: '900', color: '#fff'
-                }}>
-                  {(selectedLogbookMhs.nama || '?')[0]}
-                </div>
-                <div>
-                  <div style={{ fontSize: '17px', fontWeight: '900', color: '#1e293b' }}>
-                    Monitoring Logbook — {selectedLogbookMhs.nama}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>
-                    NIM: {selectedLogbookMhs.nim} • {selectedLogbookMhs.magang?.nama_instansi} • DPL: {selectedLogbookMhs.dpl?.nama_dpl}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedLogbookMhs(null)}
-                style={{
-                  width: '34px', height: '34px', borderRadius: '9px',
-                  background: '#f1f5f9', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b'
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', fontSize: '12px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px' }}>🔒</span>
-                <span><strong>Akses Read-Only Kaprodi:</strong> Kaprodi & Admin dapat memantau seluruh aktivitas logbook mahasiswa dan melihat catatan dari Dosen Pembimbing (DPL) & Supervisor Mitra secara transparan.</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {[
-                  {
-                    minggu_ke: 1,
-                    periode: '27 Juli 2026 – 02 Agustus 2026',
-                    kegiatan: 'Onboarding tim engineering, setup environment Node.js & Supabase PostgreSQL RLS, merancang ERD basis data.',
-                    status: 'Disetujui Supervisor Mitra',
-                    catatan_mitra: 'Kerja sangat cepat & arsitektur database terstruktur dengan baik.',
-                    catatan_dosen: 'Progres minggu 1 sangat baik. Pertahankan konsistensi dokumentasi ERD.'
-                  },
-                  {
-                    minggu_ke: 2,
-                    periode: '03 Agustus 2026 – 09 Agustus 2026',
-                    kegiatan: 'Implementasi REST API authentication JWT, role-based authorization, dan unit test Jest.',
-                    status: 'Menunggu Review DPL & Mitra',
-                    catatan_mitra: 'Masih dalam peninjauan mentor mitra.',
-                    catatan_dosen: 'Pastikan penanganan error handling pada middleware JWT diuji.'
-                  }
-                ].map((lb, i) => (
-                  <div key={i} style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e9d5ff', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontWeight: '800', color: '#1e1b4b', fontSize: '13.5px' }}>Minggu Ke-{lb.minggu_ke} <span style={{ fontWeight: '500', color: '#64748b', fontSize: '12px' }}>({lb.periode})</span></span>
-                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>{lb.status}</span>
-                    </div>
-                    <p style={{ fontSize: '13px', color: '#334155', margin: '0 0 12px 0', lineHeight: '1.5' }}>{lb.kegiatan}</p>
-                    
-                    {/* Notes Read-Only Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', borderTop: '1px dashed #e2e8f0', paddingTop: '10px' }}>
-                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px', borderRadius: '8px', fontSize: '12px' }}>
-                        <strong style={{ color: '#166534', display: 'block', marginBottom: '2px' }}>🏢 Catatan Supervisor Mitra:</strong>
-                        <span style={{ color: '#15803d' }}>{lb.catatan_mitra || 'Belum ada catatan supervisor'}</span>
-                      </div>
-                      <div style={{ background: '#faf5ff', border: '1px solid #d8b4fe', padding: '10px', borderRadius: '8px', fontSize: '12px' }}>
-                        <strong style={{ color: '#6b21a8', display: 'block', marginBottom: '2px' }}>💬 Catatan Bimbingan Dosen (DPL):</strong>
-                        <span style={{ color: '#7e22ce' }}>{lb.catatan_dosen || 'Belum ada catatan dosen'}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{ padding: '16px 28px', borderTop: '1px solid #f1f5f9', textAlign: 'right' }}>
-              <button
-                onClick={() => setSelectedLogbookMhs(null)}
-                style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: '#f1f5f9', color: '#475569', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}
-              >
-                Tutup Monitoring Logbook
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
