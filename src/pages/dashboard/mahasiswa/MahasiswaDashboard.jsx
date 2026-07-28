@@ -126,7 +126,7 @@ const MahasiswaDashboard = () => {
           const d = resDash.data;
           setDashboardData(d);
 
-          if (d.hero_card || (d.tabel_konversi_mk && d.tabel_konversi_mk.length > 0)) {
+          if (d.has_pengajuan && (d.hero_card || (d.tabel_konversi_mk && d.tabel_konversi_mk.length > 0))) {
             setConversionState(prev => ({
               ...prev,
               status: prev.status !== 'none' ? prev.status : 'DISETUJUI',
@@ -148,13 +148,21 @@ const MahasiswaDashboard = () => {
                 status: 'DISETUJUI',
               }]);
             }
-            if (d.dosen_pembimbing?.nama_dpl) {
+            if (d.dosen_pembimbing?.nama_dpl && d.dosen_pembimbing?.nama_dpl !== 'Belum Ada DPL') {
               setDosenPembimbing(prev => prev || {
                 status: 'DISETUJUI',
                 namaDPL: d.dosen_pembimbing.nama_dpl,
                 skDplUrl: d.dosen_pembimbing.sk_dpl_url,
               });
             }
+          } else if (d.has_pengajuan === false) {
+            setIdMagangStatus('none');
+            setIdMagangValue('');
+            setIdMagangData(null);
+            setProposals([]);
+            setSuratPengantar(null);
+            setDosenPembimbing(null);
+            setConversionState({ status: 'none', tanggalPengajuan: '', courses: [] });
           }
         }
 

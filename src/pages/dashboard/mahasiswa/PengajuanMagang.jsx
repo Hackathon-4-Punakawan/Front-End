@@ -478,21 +478,23 @@ const PengajuanMagang = ({
               )}
             </div>
 
-            {/* ID Magang Info Banner */}
-            <div className="pm-id-info-banner">
-              <div className="pm-id-info-left">
-                <div className="pm-id-info-icon">
-                  <CheckCircle2 size={20} />
+            {/* ID Magang Info Banner (Only render if user has an approved ID Magang) */}
+            {idMagangStatus === 'approved' && idMagangValue && (
+              <div className="pm-id-info-banner">
+                <div className="pm-id-info-left">
+                  <div className="pm-id-info-icon">
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <div>
+                    <p className="pm-id-info-label">ID Magang Resmi Anda</p>
+                    <p className="pm-id-info-value">{idMagangValue}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="pm-id-info-label">ID Magang Resmi Anda</p>
-                  <p className="pm-id-info-value">{idMagangValue}</p>
+                <div className="pm-id-info-right">
+                  <span className="pm-id-approved-badge">✓ Disetujui Fakultas</span>
                 </div>
               </div>
-              <div className="pm-id-info-right">
-                <span className="pm-id-approved-badge">✓ Disetujui Fakultas</span>
-              </div>
-            </div>
+            )}
 
             {/* Simulation Block: Approve Proposal (Show only if there's a pending proposal) */}
             {proposals[0] && proposals[0].status === 'PENDING' && (
