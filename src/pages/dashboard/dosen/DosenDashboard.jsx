@@ -606,8 +606,8 @@ const DosenDashboard = () => {
           zIndex: 500, padding: '20px'
         }} onClick={(e) => { if (e.target === e.currentTarget) setSelectedMahasiswa(null); }}>
           <div style={{
-            background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '760px',
-            maxHeight: '88vh', overflowY: 'auto',
+            background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '960px',
+            maxHeight: '90vh', overflowY: 'auto',
             boxShadow: '0 20px 60px rgba(0,0,0,0.18)', animation: 'fadeIn 0.25s ease'
           }}>
             {/* Modal Header */}
@@ -699,7 +699,7 @@ const DosenDashboard = () => {
                 </div>
               </div>
 
-              {/* Konversi SKS Items */}
+              {/* Konversi SKS Items — Table Layout */}
               <div>
                 <div style={{
                   fontSize: '14px', fontWeight: '800', color: '#1e293b', marginBottom: '14px',
@@ -722,70 +722,116 @@ const DosenDashboard = () => {
                   })()}
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {(selectedMahasiswa.konversi_sks?.items_konversi || []).map((item, i) => {
-                    const ist = statusStyle(item.status_step || '');
-                    return (
-                      <div key={item.id_item || i} style={{
-                        background: '#f8fafc', borderRadius: '14px', padding: '14px 18px',
-                        border: `1px solid ${ist.border}`, borderLeft: `4px solid ${ist.color}`
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
-                              {item.kode_mk} — {item.nama_mk}
+                <div style={{ overflowX: 'auto', borderRadius: '14px', border: '1px solid #e9e2f2' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: 'linear-gradient(135deg, #f3e8ff, #ede9fe)' }}>
+                        {['No', 'Kode MK', 'Nama Matkul', 'SKS', 'CPMK & Objective', 'Status', 'Nilai', 'Aksi'].map((h, i) => (
+                          <th key={i} style={{
+                            padding: '11px 14px', textAlign: 'left', fontWeight: '800',
+                            color: '#7c3aed', fontSize: '11px', letterSpacing: '0.3px',
+                            whiteSpace: 'nowrap', borderBottom: '1.5px solid #ddd6fe'
+                          }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedMahasiswa.konversi_sks?.items_konversi || []).map((item, i) => {
+                        const ist = statusStyle(item.status_step || '');
+                        return (
+                          <tr key={item.id_item || i} style={{
+                            background: i % 2 === 0 ? '#fff' : '#fdfbff',
+                            borderBottom: '1px solid #f1f5f9',
+                            transition: 'background 0.15s'
+                          }}>
+                            {/* No */}
+                            <td style={{ padding: '12px 14px', color: '#94a3b8', fontWeight: '700', width: '36px' }}>
+                              {i + 1}
+                            </td>
+                            {/* Kode MK */}
+                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                               <span style={{
-                                marginLeft: '8px', fontSize: '11px', fontWeight: '700',
-                                background: '#f3e8ff', color: '#B432F2', padding: '2px 8px', borderRadius: '6px'
-                              }}>{item.sks} SKS</span>
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px' }}>
-                              {item.objective || '-'}
-                            </div>
-                            {item.catatan_dosen && (
-                              <div style={{
-                                fontSize: '11px', color: '#059669', marginTop: '4px',
-                                display: 'flex', alignItems: 'center', gap: '4px'
-                              }}>
-                                💬 {item.catatan_dosen}
+                                background: '#f3e8ff', color: '#7c3aed',
+                                padding: '3px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '11px'
+                              }}>{item.kode_mk || '-'}</span>
+                            </td>
+                            {/* Nama MK */}
+                            <td style={{ padding: '12px 14px', fontWeight: '700', color: '#1e293b', minWidth: '160px' }}>
+                              {item.nama_mk || '-'}
+                            </td>
+                            {/* SKS */}
+                            <td style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              <span style={{
+                                background: '#ede9fe', color: '#6d28d9',
+                                padding: '3px 10px', borderRadius: '6px', fontWeight: '700', fontSize: '11px'
+                              }}>{item.sks || '-'}</span>
+                            </td>
+                            {/* CPMK & Objective */}
+                            <td style={{ padding: '12px 14px', color: '#475569', lineHeight: '1.5', minWidth: '220px' }}>
+                              {item.cpmk && (
+                                <div style={{ fontSize: '11px', color: '#6366f1', fontWeight: '600', marginBottom: '3px' }}>
+                                  {item.cpmk}
+                                </div>
+                              )}
+                              <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                {item.objective || '-'}
                               </div>
-                            )}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            {item.nilai_angka && (
+                              {item.catatan_dosen && (
+                                <div style={{
+                                  marginTop: '4px', fontSize: '11px', color: '#059669',
+                                  fontStyle: 'italic'
+                                }}>
+                                  💬 {item.catatan_dosen}
+                                </div>
+                              )}
+                            </td>
+                            {/* Status */}
+                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                               <span style={{
-                                background: '#fef9ee', color: '#d97706', border: '1px solid #fde68a',
-                                borderRadius: '8px', padding: '3px 10px', fontSize: '11px', fontWeight: '700'
+                                background: ist.bg, color: ist.color, border: `1px solid ${ist.border}`,
+                                borderRadius: '8px', padding: '4px 10px', fontSize: '11px', fontWeight: '700',
+                                display: 'inline-block'
                               }}>
-                                Nilai: {item.nilai_angka} ({item.nilai_huruf || calcGrade(item.nilai_angka)})
+                                {item.status_step || 'Menunggu Review'}
                               </span>
-                            )}
-                            <span style={{
-                              background: ist.bg, color: ist.color, border: `1px solid ${ist.border}`,
-                              borderRadius: '8px', padding: '3px 10px', fontSize: '11px', fontWeight: '700'
-                            }}>
-                              {item.status_step || 'Menunggu Review'}
-                            </span>
-                            {/* Review Buttons */}
-                            <button
-                              onClick={() => {
-                                setReviewModal({ show: true, item, nim: selectedMahasiswa.mahasiswa?.nim });
-                                setReviewAction('ACC');
-                                setReviewCatatan(item.catatan_dosen || '');
-                                setReviewNilai(item.nilai_angka?.toString() || '');
-                              }}
-                              style={{
-                                padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700',
-                                background: '#ecfdf5', color: '#059669', border: '1px solid #d1fae5', cursor: 'pointer'
-                              }}
-                            >
-                              ACC / Revisi
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                            </td>
+                            {/* Nilai */}
+                            <td style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              {item.nilai_angka ? (
+                                <span style={{
+                                  background: '#fef9ee', color: '#d97706', border: '1px solid #fde68a',
+                                  borderRadius: '8px', padding: '4px 10px', fontSize: '11px', fontWeight: '800'
+                                }}>
+                                  {item.nilai_angka} ({item.nilai_huruf || calcGrade(item.nilai_angka)})
+                                </span>
+                              ) : (
+                                <span style={{ color: '#cbd5e1', fontSize: '11px' }}>—</span>
+                              )}
+                            </td>
+                            {/* Aksi */}
+                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                              <button
+                                onClick={() => {
+                                  setReviewModal({ show: true, item, nim: selectedMahasiswa.mahasiswa?.nim });
+                                  setReviewAction('ACC');
+                                  setReviewCatatan(item.catatan_dosen || '');
+                                  setReviewNilai(item.nilai_angka?.toString() || '');
+                                }}
+                                style={{
+                                  padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: '700',
+                                  background: 'linear-gradient(135deg, #B432F2, #7c3aed)',
+                                  color: '#fff', border: 'none', cursor: 'pointer',
+                                  boxShadow: '0 2px 8px rgba(180,50,242,0.25)'
+                                }}
+                              >
+                                Review
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
