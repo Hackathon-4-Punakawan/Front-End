@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Building, ShieldCheck, FileCheck2, BarChart2, Star, CheckCircle, Clock, Bell, ChevronLeft, ChevronRight, LayoutDashboard } from 'lucide-react';
+import { LogOut, Building, ShieldCheck, FileCheck2, BarChart2, Star, CheckCircle, Clock, Bell, ChevronLeft, ChevronRight, LayoutDashboard, Search } from 'lucide-react';
 import amikomLogo from '../../assets/amikom.png';
+import unikaLogo from '../../assets/unika-logo.svg';
 
 const MitraDashboard = () => {
   const { currentUser, logout, getRoleLabel } = useAuth();
@@ -23,14 +24,12 @@ const MitraDashboard = () => {
   ];
 
   return (
-    <div className="custom-dashboard-container fade-in">
+    <div className="custom-dashboard-container purple-gradient-theme fade-in">
       {/* 1. Left Sidebar */}
       <aside className={`custom-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-logo">
           <div className="logo-icon">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#B432F2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <img src={unikaLogo} alt="UNIKA Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
           </div>
           {!isSidebarCollapsed && (
             <div className="logo-text">
@@ -154,10 +153,25 @@ const MitraDashboard = () => {
             </div>
           </div>
 
-          <div className="user-profile">
-            <div className="user-info">
-              <span className="user-name">{currentUser?.name}</span>
-              <span className="user-role-badge">{getRoleLabel(currentUser?.role)}</span>
+          <div className="header-actions">
+            <button className="icon-btn" onClick={() => alert('Pencarian modul...')}>
+              <Search size={20} />
+            </button>
+            <div className="notification-wrapper">
+              <button className="icon-btn" onClick={() => alert('Membuka panel notifikasi...')}>
+                <Bell size={20} />
+                <span className="notification-dot"></span>
+              </button>
+            </div>
+            
+            <div className="profile-badge">
+              <div className="profile-info">
+                <span className="profile-name">{currentUser?.name || 'Google Indonesia'}</span>
+                <span className="profile-role">{currentUser?.identity || 'MITRA-GOOG'}</span>
+              </div>
+              <div className="profile-avatar">
+                {currentUser?.name ? currentUser.name.charAt(0) : 'M'}
+              </div>
             </div>
           </div>
         </header>
