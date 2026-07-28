@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -123,39 +124,50 @@ const KaprodiDashboard = () => {
     }
   };
 
-  // Import Matkul File Change Handler
+  // Import Matkul File Change Handler (Supports .xlsx, .xls, .csv, .json)
   const handleFileImportChange = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setIsImportingMatkul(true);
     try {
-      const text = await file.text();
       let parsedItems = [];
 
       if (file.name.endsWith('.json')) {
+        const text = await file.text();
         parsedItems = JSON.parse(text);
       } else {
-        // Parse CSV text (Kode MK, Nama MK, SKS, Semester, CPMK, Kategori)
-        const lines = text.split('\n').filter(l => l.trim());
-        const startIdx = lines[0].toLowerCase().includes('kode') ? 1 : 0;
-        for (let i = startIdx; i < lines.length; i++) {
-          const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-          if (cols.length >= 2) {
+        // Read Excel (.xlsx, .xls) and CSV using SheetJS (XLSX)
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        if (rows && rows.length > 0) {
+          const startIdx = (rows[0] && String(rows[0][0]).toLowerCase().includes('kode')) ? 1 : 0;
+          for (let i = startIdx; i < rows.length; i++) {
+            const cols = rows[i];
+            if (!cols || cols.length < 2) continue;
+            
+            const kode_mk = String(cols[0] || '').trim();
+            const nama_mk = String(cols[1] || '').trim();
+            if (!kode_mk || !nama_mk) continue;
+
             parsedItems.push({
-              kode_mk: cols[0],
-              nama_mk: cols[1],
+              kode_mk,
+              nama_mk,
               sks: Number(cols[2]) || 4,
               semester: Number(cols[3]) || 6,
-              cpmk: cols[4] || `CPMK-${cols[0]}: Pembelajaran ${cols[1]}`,
-              kategori: cols[5] || 'Wajib Prodi'
+              cpmk: cols[4] ? String(cols[4]).trim() : `CPMK-${kode_mk}: Pembelajaran ${nama_mk}`,
+              kategori: cols[5] ? String(cols[5]).trim() : 'Wajib Prodi'
             });
           }
         }
       }
 
-      if (parsedItems.length === 0) {
-        showToast('Format file tidak valid atau data kosong. Gunakan JSON / CSV!');
+      if (!Array.isArray(parsedItems) || parsedItems.length === 0) {
+        showToast('Format file tidak valid atau data kosong. Gunakan Excel (.xlsx), CSV, atau JSON!');
         return;
       }
 
@@ -163,6 +175,7 @@ const KaprodiDashboard = () => {
       if (res.success) {
         showToast(`Berhasil mengimpor ${res.data?.total_imported || parsedItems.length} Mata Kuliah & CPMK ke Katalog!`);
         fetchMatkulList();
+        fetchStats();
       } else {
         showToast(`Gagal import: ${res.message}`);
       }
