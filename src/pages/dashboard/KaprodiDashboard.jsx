@@ -1,9 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, GraduationCap, CheckSquare, Layers, Award, Mail, Send, Check, X, Bell, ChevronLeft, ChevronRight, LayoutDashboard, Search, UserCheck, FileCheck, CheckCircle, XCircle, ExternalLink, FileText, Lock, AlertCircle } from 'lucide-react';
+import {
+  LogOut, GraduationCap, CheckSquare, Layers, Award, Mail, Send, Check, X, Bell,
+  ChevronLeft, ChevronRight, LayoutDashboard, Search, UserCheck, FileCheck, CheckCircle,
+  XCircle, ExternalLink, FileText, Lock, AlertCircle, UserPlus, Plus, Building2, BookOpen,
+  Users, RefreshCcw, Eye, Edit3, Trash2
+} from 'lucide-react';
 import amikomLogo from '../../assets/amikom.png';
 import unikaLogo from '../../assets/unika-logo.svg';
+import {
+  getAdminDashboardStatsApi,
+  getAdminMahasiswaListApi,
+  getAdminMahasiswaDetailApi,
+  getAdminDosenListApi,
+  createAdminDplApi,
+  getAdminMitraListApi,
+  createAdminMitraApi,
+  getAdminMataKuliahListApi,
+  createAdminMataKuliahApi,
+  plottingAdminDplApi,
+} from '../../services/adminService';
 
 const UnikaLogo = ({ size = 26 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" style={{ width: size, height: size, objectFit: 'contain' }}>
@@ -47,6 +64,178 @@ const KaprodiDashboard = () => {
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchPopover, setShowSearchPopover] = useState(false);
+
+  // ── Token Auth & API Integration States ──────────────────────────────────
+  const token = currentUser?.token || localStorage.getItem('edushift_token');
+
+  const [adminStats, setAdminStats] = useState(null);
+  const [dosenListApi, setDosenListApi] = useState([]);
+  const [mitraListApi, setMitraListApi] = useState([]);
+  const [mataKuliahListApi, setMataKuliahListApi] = useState([]);
+  const [mahasiswaListApi, setMahasiswaListApi] = useState([]);
+  const [selectedMhsDetail, setSelectedMhsDetail] = useState(null);
+
+  // Loading States
+  const [isLoadingAdminStats, setIsLoadingAdminStats] = useState(false);
+  const [isLoadingDosenList, setIsLoadingDosenList] = useState(false);
+  const [isLoadingMitraList, setIsLoadingMitraList] = useState(false);
+  const [isLoadingMatkulList, setIsLoadingMatkulList] = useState(false);
+  const [isLoadingMahasiswaList, setIsLoadingMahasiswaList] = useState(false);
+
+  // Modal State: Tambah DPL
+  const [showCreateDplModal, setShowCreateDplModal] = useState(false);
+  const [dplForm, setDplForm] = useState({ nidn: '', nama: '', email: '', custom_password: '', bidang_keahlian: '' });
+  const [isSubmittingDpl, setIsSubmittingDpl] = useState(false);
+
+  // Modal State: Tambah Mitra
+  const [showCreateMitraModal, setShowCreateMitraModal] = useState(false);
+  const [mitraForm, setMitraForm] = useState({ nama_perusahaan: '', nama_supervisor: '', email: '', bidang_usaha: '', custom_password: '' });
+  const [isSubmittingMitra, setIsSubmittingMitra] = useState(false);
+
+  // Modal State: Tambah Mata Kuliah
+  const [showCreateMatkulModal, setShowCreateMatkulModal] = useState(false);
+  const [matkulForm, setMatkulForm] = useState({ kode_mk: '', nama_mk: '', sks: 4, semester: 6, cpmk: '', kategori: 'Wajib Prodi' });
+  const [isSubmittingMatkul, setIsSubmittingMatkul] = useState(false);
+
+  // Fetch Functions
+  const fetchStats = useCallback(async () => {
+    if (!token) return;
+    setIsLoadingAdminStats(true);
+    try {
+      const res = await getAdminDashboardStatsApi(token);
+      if (res.success && res.data) setAdminStats(res.data);
+    } catch (err) { console.error(err); }
+    finally { setIsLoadingAdminStats(false); }
+  }, [token]);
+
+  const fetchDosenList = useCallback(async () => {
+    if (!token) return;
+    setIsLoadingDosenList(true);
+    try {
+      const res = await getAdminDosenListApi(token);
+      if (res.success && res.data) setDosenListApi(res.data.dosen || []);
+    } catch (err) { console.error(err); }
+    finally { setIsLoadingDosenList(false); }
+  }, [token]);
+
+  const fetchMitraList = useCallback(async () => {
+    if (!token) return;
+    setIsLoadingMitraList(true);
+    try {
+      const res = await getAdminMitraListApi(token);
+      if (res.success && res.data) setMitraListApi(res.data.mitra || []);
+    } catch (err) { console.error(err); }
+    finally { setIsLoadingMitraList(false); }
+  }, [token]);
+
+  const fetchMatkulList = useCallback(async () => {
+    if (!token) return;
+    setIsLoadingMatkulList(true);
+    try {
+      const res = await getAdminMataKuliahListApi(token);
+      if (res.success && res.data) setMataKuliahListApi(res.data.mata_kuliah || []);
+    } catch (err) { console.error(err); }
+    finally { setIsLoadingMatkulList(false); }
+  }, [token]);
+
+  const fetchMahasiswaList = useCallback(async () => {
+    if (!token) return;
+    setIsLoadingMahasiswaList(true);
+    try {
+      const res = await getAdminMahasiswaListApi(token, { search: searchQuery });
+      if (res.success && res.data) setMahasiswaListApi(res.data.mahasiswa || []);
+    } catch (err) { console.error(err); }
+    finally { setIsLoadingMahasiswaList(false); }
+  }, [token, searchQuery]);
+
+  // Load stats & lists on mount & tab change
+  useEffect(() => {
+    fetchStats();
+    fetchMahasiswaList();
+  }, [fetchStats, fetchMahasiswaList]);
+
+  useEffect(() => {
+    if (activeNavTab === 'dosen') fetchDosenList();
+    if (activeNavTab === 'mitra') fetchMitraList();
+    if (activeNavTab === 'matkul') fetchMatkulList();
+    if (activeNavTab === 'mahasiswa') fetchMahasiswaList();
+  }, [activeNavTab, fetchDosenList, fetchMitraList, fetchMatkulList, fetchMahasiswaList]);
+
+  // Submit Handlers
+  const handleCreateDplSubmit = async (e) => {
+    e.preventDefault();
+    if (!dplForm.nidn || !dplForm.nama || !dplForm.email) {
+      showToast('⚠️ Mohon lengkapi NIDN, Nama, dan Email DPL');
+      return;
+    }
+    setIsSubmittingDpl(true);
+    try {
+      const res = await createAdminDplApi(token, dplForm);
+      if (res.success) {
+        showToast(`✅ Akun DPL ${dplForm.nama} berhasil dibuat & kredensial password dikirim ke ${dplForm.email}!`);
+        setShowCreateDplModal(false);
+        setDplForm({ nidn: '', nama: '', email: '', custom_password: '', bidang_keahlian: '' });
+        fetchDosenList();
+        fetchStats();
+      } else {
+        showToast(`❌ Gagal: ${res.message}`);
+      }
+    } catch (err) {
+      showToast('❌ Gagal terhubung ke server');
+    } finally {
+      setIsSubmittingDpl(false);
+    }
+  };
+
+  const handleCreateMitraSubmit = async (e) => {
+    e.preventDefault();
+    if (!mitraForm.nama_perusahaan || !mitraForm.nama_supervisor || !mitraForm.email) {
+      showToast('⚠️ Mohon lengkapi Perusahaan, Supervisor, dan Email');
+      return;
+    }
+    setIsSubmittingMitra(true);
+    try {
+      const res = await createAdminMitraApi(token, mitraForm);
+      if (res.success) {
+        showToast(`🏢 Akun Supervisor ${mitraForm.nama_supervisor} (${mitraForm.nama_perusahaan}) berhasil dibuat & email terkirim!`);
+        setShowCreateMitraModal(false);
+        setMitraForm({ nama_perusahaan: '', nama_supervisor: '', email: '', bidang_usaha: '', custom_password: '' });
+        fetchMitraList();
+        fetchStats();
+      } else {
+        showToast(`❌ Gagal: ${res.message}`);
+      }
+    } catch (err) {
+      showToast('❌ Gagal terhubung ke server');
+    } finally {
+      setIsSubmittingMitra(false);
+    }
+  };
+
+  const handleCreateMatkulSubmit = async (e) => {
+    e.preventDefault();
+    if (!matkulForm.kode_mk || !matkulForm.nama_mk || !matkulForm.cpmk) {
+      showToast('⚠️ Mohon lengkapi Kode MK, Nama MK, dan CPMK');
+      return;
+    }
+    setIsSubmittingMatkul(true);
+    try {
+      const res = await createAdminMataKuliahApi(token, matkulForm);
+      if (res.success) {
+        showToast(`📚 Mata Kuliah ${matkulForm.nama_mk} (${matkulForm.kode_mk}) berhasil ditambahkan ke katalog!`);
+        setShowCreateMatkulModal(false);
+        setMatkulForm({ kode_mk: '', nama_mk: '', sks: 4, semester: 6, cpmk: '', kategori: 'Wajib Prodi' });
+        fetchMatkulList();
+        fetchStats();
+      } else {
+        showToast(`❌ Gagal: ${res.message}`);
+      }
+    } catch (err) {
+      showToast('❌ Gagal terhubung ke server');
+    } finally {
+      setIsSubmittingMatkul(false);
+    }
+  };
 
   // 8 Dokumen Persyaratan Pengajuan Magang MSIB
   const requiredDocumentList = [
@@ -223,13 +412,46 @@ const KaprodiDashboard = () => {
         {/* Sidebar Nav Categories */}
         <nav className="sidebar-nav">
           <div className="nav-section">
-            {!isSidebarCollapsed && <span className="section-title">KAPRODI</span>}
+            {!isSidebarCollapsed && <span className="section-title">KAPRODI MENU</span>}
+            
             <button 
               className={`nav-item ${activeNavTab === 'dashboard' ? 'active' : ''}`}
               onClick={() => setActiveNavTab('dashboard')}
             >
               <LayoutDashboard size={18} />
               {!isSidebarCollapsed && <span>Dashboard</span>}
+            </button>
+
+            <button 
+              className={`nav-item ${activeNavTab === 'mahasiswa' ? 'active' : ''}`}
+              onClick={() => setActiveNavTab('mahasiswa')}
+            >
+              <GraduationCap size={18} />
+              {!isSidebarCollapsed && <span>Mahasiswa Konversi</span>}
+            </button>
+
+            <button 
+              className={`nav-item ${activeNavTab === 'dosen' ? 'active' : ''}`}
+              onClick={() => setActiveNavTab('dosen')}
+            >
+              <UserCheck size={18} />
+              {!isSidebarCollapsed && <span>Dosen Pembimbing (DPL)</span>}
+            </button>
+
+            <button 
+              className={`nav-item ${activeNavTab === 'mitra' ? 'active' : ''}`}
+              onClick={() => setActiveNavTab('mitra')}
+            >
+              <Layers size={18} />
+              {!isSidebarCollapsed && <span>Mitra Industri</span>}
+            </button>
+
+            <button 
+              className={`nav-item ${activeNavTab === 'matkul' ? 'active' : ''}`}
+              onClick={() => setActiveNavTab('matkul')}
+            >
+              <FileText size={18} />
+              {!isSidebarCollapsed && <span>Mata Kuliah & CPMK</span>}
             </button>
           </div>
         </nav>
@@ -777,135 +999,343 @@ const KaprodiDashboard = () => {
           </>
         )}
 
-        {/* TAB 2: PENGAJUAN MAGANG */}
-        {activeNavTab === 'verifikasi' && (
+        {/* TAB 2: DOSEN PEMBIMBING LAPANGAN (DPL) */}
+        {activeNavTab === 'dosen' && (
+          <>
+            <section className="welcome-section" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 className="welcome-title">Manajemen Dosen Pembimbing Lapangan (DPL)</h2>
+                <p className="welcome-desc">
+                  Kelola daftar DPL Informatika, pantau alokasi beban bimbingan, dan tambah akun DPL baru secara otomatis.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateDplModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: '14px',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 6px 20px rgba(147, 51, 234, 0.35)',
+                  cursor: 'pointer'
+                }}
+              >
+                <UserPlus size={18} /> Tambah DPL Baru
+              </button>
+            </section>
+
+            <section className="main-panel">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <UserCheck size={20} className="text-primary" />
+                  Daftar Dosen Pembimbing (DPL) Informatika
+                </h3>
+                <button 
+                  onClick={fetchDosenList} 
+                  style={{ background: '#f3e8ff', border: '1px solid #e9d5ff', color: '#7e22ce', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <RefreshCcw size={14} /> Refresh Data
+                </button>
+              </div>
+
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>NIDN</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>NAMA DOSEN PEMBIMBING</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>EMAIL RESMI</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>BIDANG KEAHLIAN</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>MAHASISWA BIMBINGAN</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(dosenListApi.length > 0 ? dosenListApi : [
+                      { nidn: '0512038901', nama: 'Dr. Indah Susanti, M.Kom', email: 'indah.susanti@amikom.ac.id', bidang_keahlian: 'Software Engineering', total_mahasiswa_bimbingan: 2, is_active: true },
+                      { nidn: '0515088502', nama: 'Bambang Kurniawan, M.T.', email: 'bambang.k@amikom.ac.id', bidang_keahlian: 'Cloud & Cyber Security', total_mahasiswa_bimbingan: 3, is_active: true },
+                      { nidn: '0509077801', nama: 'Drs. Kusrini, M.Kom.', email: 'kusrini@amikom.ac.id', bidang_keahlian: 'Artificial Intelligence', total_mahasiswa_bimbingan: 2, is_active: true },
+                      { nidn: '0522108201', nama: 'Andi Sunyoto, M.Kom', email: 'andi.sunyoto@amikom.ac.id', bidang_keahlian: 'Database Systems', total_mahasiswa_bimbingan: 1, is_active: true }
+                    ]).map((d, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '14px', fontSize: '13px', fontWeight: '800', color: '#7e22ce' }}>{d.nidn}</td>
+                        <td style={{ padding: '14px', fontSize: '14px', fontWeight: '700', color: '#1e1b4b' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img src={d.foto_profile || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.nama)}&background=0284c7&color=fff&bold=true`} alt={d.nama} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                            <span>{d.nama}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '14px', fontSize: '13px', color: '#475569' }}>{d.email}</td>
+                        <td style={{ padding: '14px', fontSize: '13px', color: '#64748b' }}>{d.bidang_keahlian || 'Informatika'}</td>
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '4px 12px', borderRadius: '12px', fontWeight: '800', fontSize: '13px' }}>
+                            {d.total_mahasiswa_bimbingan || 2} Mahasiswa
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <span style={{ backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '4px 10px', borderRadius: '20px', fontWeight: '700', fontSize: '11px' }}>
+                            Aktif
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* TAB 3: MITRA INDUSTRI */}
+        {activeNavTab === 'mitra' && (
+          <>
+            <section className="welcome-section" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 className="welcome-title">Manajemen Mitra Industri MBKM</h2>
+                <p className="welcome-desc">
+                  Kelola profil perusahaan mitra, akun supervisor mitra, dan tambah akun mitra baru yang memicu pembuatan kredensial email.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateMitraModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: '14px',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 6px 20px rgba(2, 132, 199, 0.35)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Building2 size={18} /> Tambah Mitra Baru
+              </button>
+            </section>
+
+            <section className="main-panel">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Layers size={20} className="text-primary" />
+                  Daftar Mitra Industri & Supervisor
+                </h3>
+                <button 
+                  onClick={fetchMitraList} 
+                  style={{ background: '#e0f2fe', border: '1px solid #bae6fd', color: '#0369a1', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <RefreshCcw size={14} /> Refresh Data
+                </button>
+              </div>
+
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e0f2fe' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #bae6fd' }}>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#0369a1', backgroundColor: '#e0f2fe' }}>NAMA PERUSAHAAN</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#0369a1', backgroundColor: '#e0f2fe' }}>SUPERVISOR / PIC</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#0369a1', backgroundColor: '#e0f2fe' }}>EMAIL SUPERVISOR</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#0369a1', backgroundColor: '#e0f2fe' }}>KATEGORI INDUSTRI</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#0369a1', backgroundColor: '#e0f2fe', textAlign: 'center' }}>TOTAL MHS MAGANG</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(mitraListApi.length > 0 ? mitraListApi : [
+                      { id_mitra: 1, nama_perusahaan: 'PT GoTo Gojek Tokopedia Tbk', nama_supervisor: 'Rian Hidayat', email_supervisor: 'rian.hidayat@goto.com', kategori_industri: 'Technology & Unicorn', total_mahasiswa_magang: 3 },
+                      { id_mitra: 2, nama_perusahaan: 'PT Bukalapak.com Tbk', nama_supervisor: 'Hendra Wijaya', email_supervisor: 'hendra.wijaya@bukalapak.com', kategori_industri: 'E-Commerce', total_mahasiswa_magang: 2 },
+                      { id_mitra: 3, nama_perusahaan: 'PT Bank Central Asia Tbk (BCA Digital)', nama_supervisor: 'Siti Rahmawati', email_supervisor: 'siti.rahmawati@bca.co.id', kategori_industri: 'Banking & Fintech', total_mahasiswa_magang: 2 },
+                      { id_mitra: 4, nama_perusahaan: 'PT Telkom Indonesia Tbk', nama_supervisor: 'Agus Pratama', email_supervisor: 'agus.pratama@telkom.co.id', kategori_industri: 'Telecommunication', total_mahasiswa_magang: 3 }
+                    ]).map((m, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '14px', fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>{m.nama_perusahaan}</td>
+                        <td style={{ padding: '14px', fontSize: '13px', fontWeight: '700', color: '#0369a1' }}>{m.nama_supervisor}</td>
+                        <td style={{ padding: '14px', fontSize: '13px', color: '#475569' }}>{m.email_supervisor}</td>
+                        <td style={{ padding: '14px', fontSize: '13px', color: '#64748b' }}>{m.kategori_industri || 'Technology'}</td>
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '4px 12px', borderRadius: '12px', fontWeight: '800', fontSize: '13px' }}>
+                            {m.total_mahasiswa_magang || 2} Mahasiswa
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* TAB 4: MATA KULIAH & CPMK */}
+        {activeNavTab === 'matkul' && (
+          <>
+            <section className="welcome-section" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 className="welcome-title">Master Data Katalog Mata Kuliah & CPMK</h2>
+                <p className="welcome-desc">
+                  Kelola katalog mata kuliah prodi Informatika dan deskripsi CPMK untuk rekomendasi AI konversi SKS.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateMatkulModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: '14px',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={18} /> Tambah MK Baru
+              </button>
+            </section>
+
+            <section className="main-panel">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FileText size={20} className="text-primary" />
+                  Katalog Mata Kuliah & CPMK Informatika
+                </h3>
+                <button 
+                  onClick={fetchMatkulList} 
+                  style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <RefreshCcw size={14} /> Refresh Catalog
+                </button>
+              </div>
+
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>KODE MK</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>NAMA MATA KULIAH</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>SKS</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>DESKRIPSI CPMK</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>KATEGORI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(mataKuliahListApi.length > 0 ? mataKuliahListApi : [
+                      { kode_mk: 'ST084', nama_mk: 'Pemrograman Web', sks: 4, cpmk: 'CPMK16-Mahasiswa mampu merancang web app responsif berbasis REST API', kategori: 'Wajib Prodi' },
+                      { kode_mk: 'ST116', nama_mk: 'Pemrograman Basis Data', sks: 4, cpmk: 'CPMK15-Mahasiswa mampu mengelola database relasional & SQL query', kategori: 'Wajib Prodi' },
+                      { kode_mk: 'ST091', nama_mk: 'Analisis dan Desain Sistem Informasi', sks: 4, cpmk: 'CPMK11-Mahasiswa mampu merekayasa perangkat lunak dan analisis sistem', kategori: 'Wajib Prodi' },
+                      { kode_mk: 'ST055', nama_mk: 'Kecerdasan Buatan (Artificial Intelligence)', sks: 4, cpmk: 'CPMK12-Mahasiswa mampu menerapkan algoritma machine learning', kategori: 'Pilihan' }
+                    ]).map((mk, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '14px', fontSize: '13px', fontWeight: '800', color: '#7e22ce' }}>{mk.kode_mk}</td>
+                        <td style={{ padding: '14px', fontSize: '14px', fontWeight: '700', color: '#1e1b4b' }}>{mk.nama_mk}</td>
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '13px' }}>
+                            {mk.sks} SKS
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px', fontSize: '12px', color: '#475569', maxWidth: '340px' }}>{mk.cpmk}</td>
+                        <td style={{ padding: '14px', fontSize: '12px', color: '#64748b' }}>{mk.kategori || 'Wajib Prodi'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* TAB 5: MAHASISWA KONVERSI */}
+        {activeNavTab === 'mahasiswa' && (
           <>
             <section className="welcome-section" style={{ marginBottom: '24px' }}>
-              <h2 className="welcome-title">Pengajuan Magang Mahasiswa MSIB</h2>
+              <h2 className="welcome-title">Daftar & Monitoring Mahasiswa Konversi</h2>
               <p className="welcome-desc">
-                Periksa berkas pengajuan magang mahasiswa MSIB dan berikan persetujuan ACC Proposal.
+                Pantau daftar seluruh mahasiswa magang, progres 5 step, dan status penetapan DPL pembimbing.
               </p>
             </section>
 
             <section className="main-panel">
-              <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileCheck size={20} className="text-primary" />
-                Pengajuan Magang & ACC Proposal
-              </h3>
-              <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
-                Verifikasi kelengkapan berkas pengajuan magang MSIB dan berikan persetujuan ACC Proposal Mahasiswa.
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 className="panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <GraduationCap size={20} className="text-primary" />
+                  Daftar Mahasiswa Konversi SKS (S1 Informatika)
+                </h3>
+                <button 
+                  onClick={fetchMahasiswaList} 
+                  style={{ background: '#f3e8ff', border: '1px solid #e9d5ff', color: '#7e22ce', padding: '6px 12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <RefreshCcw size={14} /> Refresh Data
+                </button>
+              </div>
 
-          <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
-                  <th style={{ padding: '12px 10px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', position: 'sticky', top: 0, zIndex: 5, whiteSpace: 'nowrap' }}>MAHASISWA</th>
-                  <th style={{ padding: '12px 10px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', position: 'sticky', top: 0, zIndex: 5, whiteSpace: 'nowrap' }}>HISTORY PENGAJUAN MAGANG</th>
-                  <th style={{ padding: '12px 10px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', position: 'sticky', top: 0, zIndex: 5, textAlign: 'center', whiteSpace: 'nowrap' }}>HASIL BERKAS</th>
-                  <th style={{ padding: '12px 10px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', position: 'sticky', top: 0, zIndex: 5, textAlign: 'center', whiteSpace: 'nowrap' }}>DOKUMEN DIKUMPUL</th>
-                  <th style={{ padding: '12px 10px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', position: 'sticky', top: 0, zIndex: 5, textAlign: 'center', whiteSpace: 'nowrap' }}>VERIFIKASI BERKAS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProposalsReviewData.map((item) => (
-                  <tr key={item.id}>
-                    <td style={{ padding: '14px 10px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e1b4b', whiteSpace: 'nowrap' }}>{item.name}</span>
-                        <span className="sub-text" style={{ fontSize: '12px', color: '#7e22ce' }}>{item.nim} • {item.company}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '14px 10px' }}>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {item.files.map((file, idx) => (
-                          <a
-                            key={idx}
-                            href="#download"
-                            onClick={(e) => { e.preventDefault(); alert(`Mengunduh berkas ${file}`); }}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '4px 8px',
-                              borderRadius: '6px',
-                              backgroundColor: '#f3e8ff',
-                              color: '#7e22ce',
-                              border: '1px solid #e9d5ff',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              textDecoration: 'none'
-                            }}
-                          >
-                            <FileText size={12} /> {file}
-                          </a>
-                        ))}
-                      </div>
-                    </td>
-                    <td style={{ padding: '14px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '4px 12px',
-                        borderRadius: '99px',
-                        fontSize: '11px',
-                        fontWeight: '700',
-                        backgroundColor: item.hasilBerkas === 'ACC Berkas' ? '#ecfdf5' : '#fffbeb',
-                        color: item.hasilBerkas === 'ACC Berkas' ? '#059669' : '#d97706',
-                        border: item.hasilBerkas === 'ACC Berkas' ? '1px solid #a7f3d0' : '1px solid #fde68a'
-                      }}>
-                        {item.hasilBerkas === 'ACC Berkas' && <CheckCircle size={12} />}
-                        {item.hasilBerkas}
-                      </span>
-                    </td>
-                    <td style={{ padding: '14px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '6px 14px',
-                        borderRadius: '8px',
-                        backgroundColor: item.collected === item.total ? '#ecfdf5' : '#f3e8ff',
-                        color: item.collected === item.total ? '#059669' : '#7e22ce',
-                        fontWeight: '800',
-                        fontSize: '13px',
-                        border: item.collected === item.total ? '1px solid #a7f3d0' : '1px solid #e9d5ff'
-                      }}>
-                        {item.collected}/{item.total} Dokumen
-                      </span>
-                    </td>
-                    <td style={{ padding: '14px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDocStudent(item)}
-                        style={{
-                          background: item.collected === item.total 
-                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
-                            : 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
-                          color: 'white',
-                          border: 'none',
-                          padding: '7px 14px',
-                          borderRadius: '8px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '12px',
-                          fontWeight: '700',
-                          boxShadow: '0 4px 12px rgba(147, 51, 234, 0.25)',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        <FileText size={13} /> Cek Berkas ({item.collected}/8)
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </>
-    )}
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e9d5ff' }}>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>MAHASISWA</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>INSTANSI MAGANG</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff' }}>DOSEN PEMBIMBING (DPL)</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>USULAN SKS</th>
+                      <th style={{ padding: '12px 14px', fontSize: '13px', fontWeight: '700', color: '#581c87', backgroundColor: '#f3e8ff', textAlign: 'center' }}>STATUS REVIEW</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(mahasiswaListApi.length > 0 ? mahasiswaListApi : [
+                      { nim: '21.11.4001', nama: 'Budi Santoso', magang: { nama_instansi: 'PT GoTo Gojek Tokopedia Tbk', posisi: 'Fullstack Developer Intern' }, dpl: { nama_dpl: 'Dr. Indah Susanti, M.Kom' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
+                      { nim: '21.11.4002', nama: 'Fathur Rahman', magang: { nama_instansi: 'PT Bank Central Asia Tbk', posisi: 'Backend Engineer Intern' }, dpl: { nama_dpl: 'Bambang Kurniawan, M.T.' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Disetujui DPL' } },
+                      { nim: '21.11.4003', nama: 'Ramadhan', magang: { nama_instansi: 'PT Bukalapak.com Tbk', posisi: 'Mobile Developer Intern' }, dpl: { nama_dpl: 'Dr. Indah Susanti, M.Kom' }, konversi_sks: { total_sks: 20, status_review_dpl: 'Menunggu Review DPL' } }
+                    ]).map((mhs, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '14px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e1b4b' }}>{mhs.nama}</span>
+                            <span style={{ fontSize: '12px', color: '#7e22ce', fontWeight: '600' }}>{mhs.nim}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '14px', fontSize: '13px', fontWeight: '600', color: '#1e1b4b' }}>
+                          {mhs.magang?.nama_instansi || 'PT GoTo Gojek Tokopedia Tbk'}
+                        </td>
+                        <td style={{ padding: '14px', fontSize: '13px', color: '#475569' }}>
+                          {mhs.dpl?.nama_dpl || 'Dr. Indah Susanti, M.Kom'}
+                        </td>
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '13px' }}>
+                            {mhs.konversi_sks?.total_sks || 20} SKS
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <span style={{
+                            padding: '4px 12px', borderRadius: '20px', fontWeight: '700', fontSize: '11px',
+                            backgroundColor: (mhs.konversi_sks?.status_review_dpl || '').includes('Disetujui') ? '#ecfdf5' : '#fffbeb',
+                            color: (mhs.konversi_sks?.status_review_dpl || '').includes('Disetujui') ? '#059669' : '#d97706',
+                            border: (mhs.konversi_sks?.status_review_dpl || '').includes('Disetujui') ? '1px solid #a7f3d0' : '1px solid #fde68a'
+                          }}>
+                            {mhs.konversi_sks?.status_review_dpl || 'Menunggu Review DPL'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        )}
 
     {/* TAB 3: PENILAIAN AKHIR */}
     {activeNavTab === 'penilaian' && (
@@ -1624,6 +2054,236 @@ const KaprodiDashboard = () => {
                 })()}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL 1: Tambah DPL Baru */}
+      {showCreateDplModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(6px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '24px',
+            maxWidth: '520px',
+            width: '100%',
+            padding: '28px',
+            boxShadow: '0 25px 50px -12px rgba(88, 28, 135, 0.35)',
+            border: '1px solid #e9d5ff',
+            animation: 'fadeIn 0.25s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#f3e8ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UserPlus size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#1e1b4b' }}>Tambah Akun DPL Baru</h3>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>Otomatis Mengirim Kredensial via Email</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowCreateDplModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateDplSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>NIDN Dosen *</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: 0512038901"
+                  value={dplForm.nidn}
+                  onChange={(e) => setDplForm({ ...dplForm, nidn: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Nama Lengkap Dosen (Gelar) *</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: Dr. Indah Susanti, M.Kom"
+                  value={dplForm.nama}
+                  onChange={(e) => setDplForm({ ...dplForm, nama: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Email Resmi Amikom *</label>
+                <input 
+                  type="email" 
+                  placeholder="Contoh: indah.susanti@amikom.ac.id"
+                  value={dplForm.email}
+                  onChange={(e) => setDplForm({ ...dplForm, email: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Bidang Keahlian DPL</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: Software Engineering & Cloud"
+                  value={dplForm.bidang_keahlian}
+                  onChange={(e) => setDplForm({ ...dplForm, bidang_keahlian: e.target.value })}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Password Sementara (Kosongkan jika auto-generate)</label>
+                <input 
+                  type="password" 
+                  placeholder="Default: Dosen#XXXX"
+                  value={dplForm.custom_password}
+                  onChange={(e) => setDplForm({ ...dplForm, custom_password: e.target.value })}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateDplModal(false)}
+                  style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#475569', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingDpl}
+                  style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)', color: '#ffffff', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 14px rgba(147, 51, 234, 0.3)' }}
+                >
+                  {isSubmittingDpl ? 'Membuat Akun & Mengirim Email...' : 'Buat Akun DPL'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: Tambah Mitra Baru */}
+      {showCreateMitraModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(6px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '24px',
+            maxWidth: '520px',
+            width: '100%',
+            padding: '28px',
+            boxShadow: '0 25px 50px -12px rgba(88, 28, 135, 0.35)',
+            border: '1px solid #e9d5ff',
+            animation: 'fadeIn 0.25s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Building2 size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#1e1b4b' }}>Tambah Mitra Industri Baru</h3>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>Otomatis Mengirim Kredensial via Email</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowCreateMitraModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateMitraSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Nama Perusahaan / Instansi *</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: PT GoTo Gojek Tokopedia Tbk"
+                  value={mitraForm.nama_perusahaan}
+                  onChange={(e) => setMitraForm({ ...mitraForm, nama_perusahaan: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Nama Supervisor / Mentor PIC *</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: Rian Hidayat, S.T."
+                  value={mitraForm.nama_supervisor}
+                  onChange={(e) => setMitraForm({ ...mitraForm, nama_supervisor: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Email Supervisor Mitra *</label>
+                <input 
+                  type="email" 
+                  placeholder="Contoh: rian.hidayat@goto.com"
+                  value={mitraForm.email}
+                  onChange={(e) => setMitraForm({ ...mitraForm, email: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Bidang Usaha / Kategori Industri</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: Technology & Ecommerce"
+                  value={mitraForm.bidang_usaha}
+                  onChange={(e) => setMitraForm({ ...mitraForm, bidang_usaha: e.target.value })}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateMitraModal(false)}
+                  style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#475569', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingMitra}
+                  style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)' }}
+                >
+                  {isSubmittingMitra ? 'Membuat Akun & Mengirim Email...' : 'Buat Akun Mitra'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
