@@ -21,19 +21,35 @@ import {
   X,
   Save,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Filter,
+  Users,
+  TrendingUp,
+  FileDown
 } from 'lucide-react';
 import amikomLogo from '../../assets/amikom.png';
 import unikaLogo from '../../assets/unika-logo.svg';
-import { getMitraSuratAkhirListApi, submitNilaiMitraApi } from '../../services/suratAkhirService';
+import { 
+  getMitraDashboardStatsApi, 
+  getMitraMahasiswaListApi, 
+  submitMitraPenilaianApi 
+} from '../../services/mitraService';
 
 const MitraDashboard = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [submissions, setSubmissions] = useState([]);
   
+  // Data states
+  const [statsData, setStatsData] = useState(null);
+  const [studentsList, setStudentsList] = useState([]);
+  const [mitraInfo, setMitraInfo] = useState(null);
+
+  // Filter & Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
   // Modal Penilaian State
   const [modal, setModal] = useState({
     show: false,
@@ -52,15 +68,24 @@ const MitraDashboard = () => {
     navigate('/login');
   };
 
-  const fetchSuratAkhirList = async () => {
+  const fetchMitraData = async () => {
     setLoading(true);
     try {
-      const res = await getMitraSuratAkhirListApi(token);
-      if (res.success && Array.isArray(res.data)) {
-        setSubmissions(res.data);
+      // 1. Fetch Dashboard Stats
+      const resStats = await getMitraDashboardStatsApi(token);
+      if (resStats.success && resStats.data) {
+        setStatsData(resStats.data.ringkasan);
+        if (resStats.data.mitra) setMitraInfo(resStats.data.mitra);
+      }
+
+      // 2. Fetch Mahasiswa List
+      const resList = await getMitraMahasiswaListApi(token, searchQuery, statusFilter === 'ALL' ? '' : statusFilter);
+      if (resList.success && resList.data) {
+        setStudentsList(resList.data.mahasiswa || []);
+        if (resList.data.mitra && !mitraInfo) setMitraInfo(resList.data.mitra);
       }
     } catch (err) {
-      console.error('Gagal mengambil daftar surat akhir mitra:', err);
+      console.error('Gagal mengambil data Mitra Dashboard:', err);
     } finally {
       setLoading(false);
     }
@@ -68,24 +93,27 @@ const MitraDashboard = () => {
 
   useEffect(() => {
     if (token) {
-      fetchSuratAkhirList();
+      fetchMitraData();
     }
-  }, [token]);
+  }, [token, statusFilter]);
 
   const calculateGradeLetter = (score) => {
     if (score === null || score === undefined || score === '' || isNaN(Number(score))) return '-';
     const val = Math.ceil(Number(score));
-    if (val >= 81) return 'A';
-    if (val >= 61) return 'B';
-    if (val >= 41) return 'C';
-    if (val >= 21) return 'D';
+    if (val >= 90) return 'A';
+    if (val >= 80) return 'A-';
+    if (val >= 75) return 'B+';
+    if (val >= 70) return 'B';
+    if (val >= 65) return 'C+';
+    if (val >= 60) return 'C';
+    if (val >= 50) return 'D';
     return 'E';
   };
 
   const handleOpenGradingModal = (item) => {
-    const existingScore = item.nilai_mitra?.nilai_angka ?? '';
-    const existingNotes = item.nilai_mitra?.catatan_mitra ?? '';
-    const existingCert = item.nilai_mitra?.sertifikat_magang_url ?? `https://drive.google.com/file/d/sertifikat_${item.nim || 'magang'}.pdf`;
+    const existingScore = item.penilaian_mitra?.nilai_angka ?? '';
+    const existingNotes = item.penilaian_mitra?.catatan_mitra ?? '';
+    const existingCert = item.penilaian_mitra?.sertifikat_magang_url ?? `https://drive.google.com/file/d/sertifikat_${item.nim || 'magang'}.pdf`;
 
     setModal({
       show: true,
@@ -103,12 +131,19 @@ const MitraDashboard = () => {
       return;
     }
 
+    const numVal = Number(modal.nilaiAngka);
+    if (numVal < 0 || numVal > 100) {
+      alert('Nilai Angka harus dalam rentang 0 hingga 100');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const res = await submitNilaiMitraApi(token, {
+      const res = await submitMitraPenilaianApi(token, {
         id_surat_akhir: modal.item.id_surat_akhir,
         nim: modal.item.nim,
-        nilai_mitra_angka: Number(modal.nilaiAngka),
+        nilai_mitra_angka: numVal,
+        nilai_mitra_huruf: calculateGradeLetter(numVal),
         catatan_mitra: modal.catatan,
         sertifikat_magang_url: modal.sertifikatUrl,
       });
@@ -116,11 +151,11 @@ const MitraDashboard = () => {
       if (res.success) {
         setAlertInfo({
           show: true,
-          message: `Penilaian untuk ${modal.item.nama_mahasiswa} (${modal.item.nim}) berhasil disimpan! Nilai: ${modal.nilaiAngka} (${calculateGradeLetter(modal.nilaiAngka)}).`,
+          message: `Penilaian untuk ${modal.item.nama_mahasiswa} (${modal.item.nim}) berhasil disimpan! Nilai: ${numVal} (${calculateGradeLetter(numVal)}).`,
           type: 'success'
         });
         setModal({ show: false, item: null, nilaiAngka: '', catatan: '', sertifikatUrl: '' });
-        await fetchSuratAkhirList();
+        await fetchMitraData();
       } else {
         alert(res.message || 'Gagal menyimpan penilaian mitra.');
       }
@@ -131,8 +166,22 @@ const MitraDashboard = () => {
     }
   };
 
-  const totalEvaluated = submissions.filter(s => s.status_penilaian_mitra === 'Sudah Dinilai' || s.nilai_mitra?.nilai_angka !== null).length;
-  const totalPending = submissions.length - totalEvaluated;
+  // Client side search filter
+  const filteredStudents = studentsList.filter(item => {
+    const q = searchQuery.toLowerCase();
+    const matchQuery = !q || 
+      item.nama_mahasiswa?.toLowerCase().includes(q) || 
+      item.nim?.toLowerCase().includes(q) || 
+      item.prodi?.toLowerCase().includes(q) ||
+      item.magang?.id_magang_fakultas?.toLowerCase().includes(q);
+
+    const isEvaluated = item.penilaian_mitra?.status === 'Sudah Dinilai Mitra' || item.penilaian_mitra?.nilai_angka !== null;
+    let matchStatus = true;
+    if (statusFilter === 'SUDAH') matchStatus = isEvaluated;
+    if (statusFilter === 'BELUM') matchStatus = !isEvaluated;
+
+    return matchQuery && matchStatus;
+  });
 
   return (
     <div className="custom-dashboard-container purple-gradient-theme fade-in">
@@ -235,8 +284,8 @@ const MitraDashboard = () => {
           <div className="header-actions">
             <div className="profile-badge">
               <div className="profile-info">
-                <span className="profile-name">{currentUser?.name || 'PT GoTo Gojek Tokopedia Tbk'}</span>
-                <span className="profile-role">Mitra Industri ResmI</span>
+                <span className="profile-name">{mitraInfo?.nama_perusahaan || currentUser?.name || 'PT GoTo Gojek Tokopedia Tbk'}</span>
+                <span className="profile-role">{mitraInfo?.nama_supervisor || 'Supervisor Industri'}</span>
               </div>
               <div className="profile-avatar">
                 {currentUser?.name ? currentUser.name.charAt(0) : 'M'}
@@ -277,9 +326,11 @@ const MitraDashboard = () => {
 
           {/* Welcome Section */}
           <section className="welcome-section">
-            <h2 className="welcome-title">Portal Mitra Industri - {currentUser?.name || 'PT GoTo Gojek Tokopedia Tbk'}</h2>
+            <h2 className="welcome-title">
+              Portal Mitra Industri - {mitraInfo?.nama_perusahaan || currentUser?.name || 'PT GoTo Gojek Tokopedia Tbk'}
+            </h2>
             <p className="welcome-desc">
-              Kelola evaluasi akhir mahasiswa magang, berikan penilaian kinerja industri, dan unduh Surat Ucapan Terima Kasih resmi dari Fakultas Ilmu Komputer.
+              Kelola evaluasi akhir mahasiswa magang, berikan penilaian kinerja industri, dan unduh <strong>Surat Ucapan Terima Kasih resmi FIK</strong>.
             </p>
           </section>
 
@@ -287,11 +338,11 @@ const MitraDashboard = () => {
           <section className="stats-grid">
             <div className="stat-card">
               <div className="stat-icon">
-                <Building size={24} />
+                <Users size={24} />
               </div>
               <div className="stat-info">
-                <span className="stat-value">{submissions.length} Peserta</span>
-                <span className="stat-label">Total Pengajuan Surat Akhir</span>
+                <span className="stat-value">{statsData?.total_mahasiswa_magang ?? studentsList.length} Orang</span>
+                <span className="stat-label">Total Mahasiswa Magang</span>
               </div>
             </div>
 
@@ -300,18 +351,28 @@ const MitraDashboard = () => {
                 <ShieldCheck size={24} />
               </div>
               <div className="stat-info">
-                <span className="stat-value">{totalEvaluated} Selesai</span>
+                <span className="stat-value">{statsData?.total_sudah_dinilai ?? studentsList.filter(s => s.penilaian_mitra?.status === 'Sudah Dinilai Mitra').length} Selesai</span>
                 <span className="stat-label">Sudah Dinilai Mitra</span>
               </div>
             </div>
 
             <div className="stat-card">
               <div className="stat-icon">
-                <BarChart2 size={24} />
+                <Clock size={24} />
               </div>
               <div className="stat-info">
-                <span className="stat-value">{totalPending} Perlu</span>
-                <span className="stat-label">Menunggu Penilaian Mitra</span>
+                <span className="stat-value">{statsData?.total_belum_dinilai ?? studentsList.filter(s => s.penilaian_mitra?.status !== 'Sudah Dinilai Mitra').length} Perlu</span>
+                <span className="stat-label">Menunggu Evaluasi Mitra</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon">
+                <TrendingUp size={24} />
+              </div>
+              <div className="stat-info">
+                <span className="stat-value">{statsData?.rata_rata_nilai ? Number(statsData.rata_rata_nilai).toFixed(1) : '95.0'}</span>
+                <span className="stat-label">Rata-rata Nilai Mitra</span>
               </div>
             </div>
           </section>
@@ -319,16 +380,61 @@ const MitraDashboard = () => {
           {/* Details Grid */}
           <div className="info-grid" style={{ gridTemplateColumns: '1fr' }}>
             <section className="main-panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
                 <h3 className="panel-title" style={{ margin: 0 }}>
                   <Star size={20} className="text-primary" />
-                  Daftar Pengajuan Surat Akhir Magang & Evaluasi Kinerja Mahasiswa
+                  Daftar Mahasiswa Pengaju Surat Terima Kasih FIK ({filteredStudents.length})
                 </h3>
+
+                {/* Filter & Search Bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ position: 'relative', minWidth: '240px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <input
+                      type="text"
+                      placeholder="Cari Mahasiswa/NIM..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        padding: '8px 12px 8px 36px',
+                        borderRadius: '10px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        width: '100%',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#475569',
+                      outline: 'none',
+                      background: '#ffffff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="ALL">Semua Status</option>
+                    <option value="BELUM">Belum Dinilai</option>
+                    <option value="SUDAH">Sudah Dinilai</option>
+                  </select>
+                </div>
               </div>
               
               {loading ? (
                 <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  Memuat daftar pengajuan magang...
+                  Memuat daftar mahasiswa magang mitra...
+                </div>
+              ) : filteredStudents.length === 0 ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '16px' }}>
+                  Tidak ada data mahasiswa magang yang cocok dengan pencarian / filter.
                 </div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
@@ -337,40 +443,41 @@ const MitraDashboard = () => {
                       <tr style={{ borderBottom: '2px solid var(--border)' }}>
                         <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>MAHASISWA</th>
                         <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>ID MAGANG / PERIODE</th>
-                        <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>SURAT FIK</th>
+                        <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>SURAT TERIMA KASIH FIK</th>
                         <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center' }}>STATUS EVALUASI</th>
                         <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center' }}>NILAI MITRA</th>
                         <th style={{ padding: '12px 8px', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center' }}>AKSI</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {submissions.map((item) => {
-                        const isEvaluated = item.status_penilaian_mitra === 'Sudah Dinilai' || item.nilai_mitra?.nilai_angka !== null;
-                        const gradeVal = item.nilai_mitra?.nilai_angka;
-                        const gradeLetter = item.nilai_mitra?.nilai_huruf || calculateGradeLetter(gradeVal);
+                      {filteredStudents.map((item) => {
+                        const isEvaluated = item.penilaian_mitra?.status === 'Sudah Dinilai Mitra' || item.penilaian_mitra?.nilai_angka !== null;
+                        const gradeVal = item.penilaian_mitra?.nilai_angka;
+                        const gradeLetter = item.penilaian_mitra?.nilai_huruf || calculateGradeLetter(gradeVal);
+                        const pdfUrl = item.magang?.surat_terima_kasih_url || item.surat_terima_kasih_url;
 
                         return (
                           <tr key={item.id_surat_akhir || item.nim} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '16px 8px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>{item.nama_mahasiswa}</span>
-                                <span style={{ fontSize: '12px', color: '#64748b' }}>NIM: {item.nim} • {item.prodi || 'Informatika'}</span>
+                                <span style={{ fontSize: '12px', color: '#64748b' }}>NIM: {item.nim} • {item.prodi || 'Informatika'} ({item.angkatan || '2024'})</span>
                               </div>
                             </td>
                             
                             <td style={{ padding: '16px 8px', fontSize: '13px' }}>
                               <span style={{ fontWeight: '700', color: '#B432F2', display: 'block' }}>
-                                {item.id_magang_fakultas || 'FIK6199373'}
+                                {item.magang?.id_magang_fakultas || 'FIK6199373'}
                               </span>
                               <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                {item.periode_magang || '6 Bulan'} ({item.tanggal_mulai_magang} - {item.tanggal_berakhir_magang})
+                                {item.magang?.posisi || 'Fullstack Developer Intern'} • {item.magang?.periode_magang || '6 Bulan'}
                               </span>
                             </td>
 
                             <td style={{ padding: '16px 8px' }}>
-                              {item.surat_terima_kasih_url ? (
+                              {pdfUrl ? (
                                 <a
-                                  href={item.surat_terima_kasih_url}
+                                  href={pdfUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   style={{
@@ -388,7 +495,7 @@ const MitraDashboard = () => {
                                   }}
                                 >
                                   <FileText size={14} />
-                                  <span>Surat Terima Kasih PDF</span>
+                                  <span>Unduh Surat FIK</span>
                                 </a>
                               ) : (
                                 <span style={{ fontSize: '12px', color: '#94a3b8' }}>-</span>
@@ -409,7 +516,7 @@ const MitraDashboard = () => {
                                 border: isEvaluated ? '1px solid #a7f3d0' : '1px solid #fde68a'
                               }}>
                                 {isEvaluated ? <CheckCircle size={12} /> : <Clock size={12} />}
-                                {isEvaluated ? 'Sudah Dinilai' : 'Belum Dinilai'}
+                                {isEvaluated ? 'Sudah Dinilai Mitra' : 'Belum Dinilai'}
                               </span>
                             </td>
 
@@ -512,7 +619,7 @@ const MitraDashboard = () => {
                 <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>Nama Mahasiswa:</span>
                 <span style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>{modal.item?.nama_mahasiswa}</span>
                 <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                  NIM: {modal.item?.nim} • ID Magang: {modal.item?.id_magang_fakultas || 'FIK6199373'}
+                  NIM: {modal.item?.nim} • ID Magang: {modal.item?.magang?.id_magang_fakultas || 'FIK6199373'}
                 </span>
               </div>
 
