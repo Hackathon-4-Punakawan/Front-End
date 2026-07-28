@@ -390,30 +390,42 @@ const KaprodiDashboard = () => {
     navigate('/login');
   };
 
-  // Daftar Pilihan Dosen Pembimbing yang ditentukan oleh Kaprodi
-  const availableLecturers = [
-    { id: 'd1', name: 'Ir. Handoko Prasetyo, M.T.', email: 'handoko@amikom.ac.id' },
-    { id: 'd2', name: 'Dr. Krisnawati, M.T.', email: 'krisnawati@amikom.ac.id' },
-    { id: 'd3', name: 'Prof. Kusrini, M.Kom.', email: 'kusrini@amikom.ac.id' },
-    { id: 'd4', name: 'Bagus Setiawan, M.Kom.', email: 'bagus@amikom.ac.id' },
-    { id: 'd5', name: 'Anita Wijaya, M.T.', email: 'anita@amikom.ac.id' },
-    { id: 'd6', name: 'Dimas Arisandi, M.Kom.', email: 'dimas@amikom.ac.id' },
-    { id: 'd7', name: 'Rudi Hartono, M.Kom.', email: 'rudi@amikom.ac.id' },
-    { id: 'd8', name: 'Hendra Gunawan, M.Kom.', email: 'hendra@amikom.ac.id' }
+  // Default Pilihan Dosen Pembimbing Lapangan (DPL) Resmi S1 Informatika Amikom
+  const defaultDplLecturers = [
+    { id: 'd1', name: 'Dr. Indah Susanti, M.Kom', email: 'indah.susanti@amikom.ac.id' },
+    { id: 'd2', name: 'Andi Sunyoto, M.Kom.', email: 'andi.sunyoto@amikom.ac.id' },
+    { id: 'd3', name: 'Bambang Kurniawan, M.Eng', email: 'bambang.k@amikom.ac.id' },
+    { id: 'd4', name: 'Dharmawan, M.T.', email: 'dharmawan@amikom.ac.id' },
+    { id: 'd5', name: 'Drs. Kusrini, M.Kom.', email: 'kusrini@amikom.ac.id' },
+    { id: 'd6', name: 'Fajar Masya, M.T.', email: 'fajar.masya@amikom.ac.id' },
+    { id: 'd7', name: 'Ir. Amiruddin, M.T.', email: 'amiruddin@amikom.ac.id' },
+    { id: 'd8', name: 'Niken Hendrakusma, M.Kom', email: 'niken.h@amikom.ac.id' },
+    { id: 'd9', name: 'Romi Satria Wahono, Ph.D.', email: 'romi.satria@amikom.ac.id' },
+    { id: 'd10', name: 'Widodo, M.Kom', email: 'widodo@amikom.ac.id' },
+    { id: 'd11', name: 'Suhartono, M.Kom.', email: 'suhartono@amikom.ac.id' }
   ];
+
+  // Daftar Pilihan Dosen Pembimbing Dinamis dari API / Supabase DB (dosenListApi)
+  const availableLecturers = (dosenListApi && dosenListApi.length > 0)
+    ? dosenListApi.map(d => ({
+        id: d.nidn || d.id_dpl || d.id || `d-${d.nama}`,
+        name: d.nama || d.name,
+        email: d.email || 'dosen@amikom.ac.id'
+      }))
+    : defaultDplLecturers;
 
   // Data penugasan Dosen Pembimbing oleh Kaprodi
   const [proposals, setProposals] = useState([
-    { id: 1, nim: '22.11.4321', name: 'Budi Santoso', company: 'Google Indonesia', dosenPembimbing: 'Ir. Handoko Prasetyo, M.T.', dosenEmail: 'handoko@amikom.ac.id', subjectsCount: 2, totalSks: 8, status: 'Ditetapkan' },
-    { id: 2, nim: '22.11.4302', name: 'Alif Pratama', company: 'Apple Inc.', dosenPembimbing: 'Dr. Krisnawati, M.T.', dosenEmail: 'krisnawati@amikom.ac.id', subjectsCount: 4, totalSks: 16, status: 'Belum Ditetapkan' },
-    { id: 3, nim: '22.11.4299', name: 'Sonia Clarissa', company: 'Google Indonesia', dosenPembimbing: 'Prof. Kusrini, M.Kom.', dosenEmail: 'kusrini@amikom.ac.id', subjectsCount: 3, totalSks: 12, status: 'Ditetapkan' },
-    { id: 4, nim: '22.11.4288', name: 'Rian Hidayat', company: 'Tokopedia', dosenPembimbing: 'Bagus Setiawan, M.Kom.', dosenEmail: 'bagus@amikom.ac.id', subjectsCount: 3, totalSks: 9, status: 'Belum Ditetapkan' },
-    { id: 5, nim: '22.11.4215', name: 'Siti Aminah', company: 'Traveloka', dosenPembimbing: 'Anita Wijaya, M.T.', dosenEmail: 'anita@amikom.ac.id', subjectsCount: 2, totalSks: 6, status: 'Ditetapkan' },
-    { id: 6, nim: '22.11.4190', name: 'Fajar Nugraha', company: 'Gojek', dosenPembimbing: 'Dimas Arisandi, M.Kom.', dosenEmail: 'dimas@amikom.ac.id', subjectsCount: 3, totalSks: 8, status: 'Belum Ditetapkan' },
-    { id: 7, nim: '22.11.4177', name: 'Nabila Putri', company: 'Shopee Indonesia', dosenPembimbing: 'Dr. Krisnawati, M.T.', dosenEmail: 'krisnawati@amikom.ac.id', subjectsCount: 4, totalSks: 14, status: 'Belum Ditetapkan' },
-    { id: 8, nim: '22.11.4150', name: 'Dimas Saputra', company: 'Bukalapak', dosenPembimbing: 'Rudi Hartono, M.Kom.', dosenEmail: 'rudi@amikom.ac.id', subjectsCount: 2, totalSks: 7, status: 'Ditetapkan' },
-    { id: 9, nim: '22.11.4132', name: 'Reza Rahadian', company: 'Blibli.com', dosenPembimbing: 'Ir. Handoko Prasetyo, M.T.', dosenEmail: 'handoko@amikom.ac.id', subjectsCount: 3, totalSks: 10, status: 'Belum Ditetapkan' },
-    { id: 10, nim: '22.11.4105', name: 'Ayu Lestari', company: 'Bank Mandiri', dosenPembimbing: 'Hendra Gunawan, M.Kom.', dosenEmail: 'hendra@amikom.ac.id', subjectsCount: 2, totalSks: 6, status: 'Ditetapkan' }
+    { id: 1, nim: '21.11.4001', name: 'Budi Santoso', company: 'Google Indonesia', dosenPembimbing: 'Dr. Indah Susanti, M.Kom', dosenEmail: 'indah.susanti@amikom.ac.id', subjectsCount: 2, totalSks: 8, status: 'Ditetapkan' },
+    { id: 2, nim: '21.11.4002', name: 'Alif Pratama', company: 'Apple Inc.', dosenPembimbing: 'Andi Sunyoto, M.Kom.', dosenEmail: 'andi.sunyoto@amikom.ac.id', subjectsCount: 4, totalSks: 16, status: 'Belum Ditetapkan' },
+    { id: 3, nim: '21.11.4003', name: 'Sonia Clarissa', company: 'Google Indonesia', dosenPembimbing: 'Drs. Kusrini, M.Kom.', dosenEmail: 'kusrini@amikom.ac.id', subjectsCount: 3, totalSks: 12, status: 'Ditetapkan' },
+    { id: 4, nim: '21.11.4004', name: 'Rian Hidayat', company: 'Tokopedia', dosenPembimbing: 'Bambang Kurniawan, M.Eng', dosenEmail: 'bambang.k@amikom.ac.id', subjectsCount: 3, totalSks: 9, status: 'Belum Ditetapkan' },
+    { id: 5, nim: '21.11.4005', name: 'Siti Aminah', company: 'Traveloka', dosenPembimbing: 'Dharmawan, M.T.', dosenEmail: 'dharmawan@amikom.ac.id', subjectsCount: 2, totalSks: 6, status: 'Ditetapkan' },
+    { id: 6, nim: '21.11.4006', name: 'Fajar Nugraha', company: 'Gojek', dosenPembimbing: 'Fajar Masya, M.T.', dosenEmail: 'fajar.masya@amikom.ac.id', subjectsCount: 3, totalSks: 8, status: 'Belum Ditetapkan' },
+    { id: 7, nim: '21.11.4007', name: 'Nabila Putri', company: 'Shopee Indonesia', dosenPembimbing: 'Ir. Amiruddin, M.T.', dosenEmail: 'amiruddin@amikom.ac.id', subjectsCount: 4, totalSks: 14, status: 'Belum Ditetapkan' },
+    { id: 8, nim: '21.11.4008', name: 'Dimas Saputra', company: 'Bukalapak', dosenPembimbing: 'Niken Hendrakusma, M.Kom', dosenEmail: 'niken.h@amikom.ac.id', subjectsCount: 2, totalSks: 7, status: 'Ditetapkan' },
+    { id: 9, nim: '21.11.4009', name: 'Reza Rahadian', company: 'Blibli.com', dosenPembimbing: 'Romi Satria Wahono, Ph.D.', dosenEmail: 'romi.satria@amikom.ac.id', subjectsCount: 3, totalSks: 10, status: 'Belum Ditetapkan' },
+    { id: 10, nim: '21.11.4010', name: 'Ayu Lestari', company: 'Bank Mandiri', dosenPembimbing: 'Widodo, M.Kom', dosenEmail: 'widodo@amikom.ac.id', subjectsCount: 2, totalSks: 6, status: 'Ditetapkan' }
   ]);
 
   const handleDosenChange = (studentId, newDosenName) => {
