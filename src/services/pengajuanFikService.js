@@ -194,3 +194,39 @@ export const getMahasiswaDashboardApi = async (token) => {
     };
   }
 };
+
+/**
+ * 6. Riwayat Magang & Berkas Dokumen ACC per Semester
+ * GET /api/v1/mahasiswa/riwayat-semester
+ */
+export const getMahasiswaRiwayatSemesterApi = async (token) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mahasiswa/riwayat-semester`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'Gagal mengambil data riwayat magang per semester',
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (error) {
+    console.error('Error pada getMahasiswaRiwayatSemesterApi:', error);
+    return {
+      success: false,
+      message: 'Gagal terhubung ke server API.',
+    };
+  }
+};

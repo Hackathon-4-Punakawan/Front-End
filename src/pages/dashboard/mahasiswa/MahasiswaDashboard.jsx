@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import amikomLogo from '../../../assets/amikom.png';
 import unikaLogo from '../../../assets/unika-logo.svg';
 import PengajuanMagang from './PengajuanMagang';
+import RiwayatSemesterTab from './RiwayatSemesterTab';
 import { getMyPengajuanFikStatusApi, getAllStepsApi, getMahasiswaDashboardApi } from '../../../services/pengajuanFikService';
 import { getMyProposalStatusApi } from '../../../services/proposalMagangService';
 import { getMySuratPengantarStatusApi } from '../../../services/suratPengantarService';
@@ -13,6 +14,7 @@ import {
   LogOut,
   LayoutDashboard,
   FileCheck2,
+  History,
   GitCompare,
   BookOpen,
   GraduationCap,
@@ -427,6 +429,13 @@ const MahasiswaDashboard = () => {
             >
               <FileCheck2 size={18} />
               {!isSidebarCollapsed && <span>Pengajuan Magang</span>}
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`nav-item ${activeTab === 'history' ? 'active' : ''}`}
+            >
+              <History size={18} />
+              {!isSidebarCollapsed && <span>Riwayat Magang</span>}
             </button>
           </div>
         </nav>
@@ -1046,6 +1055,11 @@ const MahasiswaDashboard = () => {
               currentWizard={currentWizard}
               setCurrentWizard={setCurrentWizard}
             />
+          )}
+
+          {/* TAB 3: RIWAYAT MAGANG PER SEMESTER */}
+          {activeTab === 'history' && (
+            <RiwayatSemesterTab currentUser={currentUser} />
           )}
         </div>
       </div>
